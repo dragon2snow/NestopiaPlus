@@ -478,12 +478,14 @@
           <xs:enumeration value="UNL-22211" />
           <xs:enumeration value="UNL-603-5052" />
           <xs:enumeration value="UNL-8237" />
+          <xs:enumeration value="UNL-A9746" />
           <xs:enumeration value="UNL-AX5705" />
           <xs:enumeration value="UNL-CC-21" />
           <xs:enumeration value="UNL-EDU2000" />
           <xs:enumeration value="UNL-H2288" />
           <xs:enumeration value="UNL-KOF97" />
           <xs:enumeration value="UNL-KS7032" />
+          <xs:enumeration value="UNL-N625092" />          
           <xs:enumeration value="UNL-SA-0036" />
           <xs:enumeration value="UNL-SA-0037" />
           <xs:enumeration value="UNL-SA-016-1M" />
@@ -607,6 +609,7 @@
                           <xs:enumeration value="NES-PAL" />
                           <xs:enumeration value="NES-PAL-A" />
                           <xs:enumeration value="NES-PAL-B" />
+                          <xs:enumeration value="Dendy" />
                         </xs:restriction>
                       </xs:simpleType>
                     </xs:attribute>

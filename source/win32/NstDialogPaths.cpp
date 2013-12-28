@@ -38,6 +38,7 @@ namespace Nestopia
 			IDC_PATHS_BATTERY     - IDC_PATHS_IMAGE == IDC_PATHS_BATTERY_BROWSE     - IDC_PATHS_IMAGE_BROWSE &&
 			IDC_PATHS_NST         - IDC_PATHS_IMAGE == IDC_PATHS_NST_BROWSE         - IDC_PATHS_IMAGE_BROWSE &&
 			IDC_PATHS_SAMPLES     - IDC_PATHS_IMAGE == IDC_PATHS_SAMPLES_BROWSE     - IDC_PATHS_IMAGE_BROWSE &&
+			IDC_PATHS_CHEATS      - IDC_PATHS_IMAGE == IDC_PATHS_CHEATS_BROWSE      - IDC_PATHS_IMAGE_BROWSE &&
 			IDC_PATHS_PATCHES     - IDC_PATHS_IMAGE == IDC_PATHS_PATCHES_BROWSE     - IDC_PATHS_IMAGE_BROWSE &&
 			IDC_PATHS_SCREENSHOTS - IDC_PATHS_IMAGE == IDC_PATHS_SCREENSHOTS_BROWSE - IDC_PATHS_IMAGE_BROWSE
 		);
@@ -75,6 +76,7 @@ namespace Nestopia
 			{ DIR_SAVE,       IDC_PATHS_BATTERY,     L"save\\"        },
 			{ DIR_STATE,      IDC_PATHS_NST,         L"states\\"      },
 			{ DIR_SAMPLES,    IDC_PATHS_SAMPLES,     L"samples\\"     },
+			{ DIR_CHEATS,     IDC_PATHS_CHEATS,      L"cheats\\"      },
 			{ DIR_PATCHES,    IDC_PATHS_PATCHES,     L"patches\\"     },
 			{ DIR_SCREENSHOT, IDC_PATHS_SCREENSHOTS, L"screenshots\\" }
 		};
@@ -85,6 +87,8 @@ namespace Nestopia
 			{ READONLY_CARTRIDGE,      IDC_PATHS_BATTERY_PROTECT           },
 			{ AUTO_IMPORT_STATE_SLOTS, IDC_PATHS_NST_AUTO_IMPORT           },
 			{ AUTO_EXPORT_STATE_SLOTS, IDC_PATHS_NST_AUTO_EXPORT           },
+			{ CHEATS_AUTO_LOAD,        IDC_PATHS_CHEATS_AUTO_LOAD          },
+			{ CHEATS_AUTO_SAVE,        IDC_PATHS_CHEATS_AUTO_SAVE          },
 			{ PATCH_AUTO_APPLY,        IDC_PATHS_PATCHES_AUTO_APPLY        },
 			{ PATCH_BYPASS_VALIDATION, IDC_PATHS_PATCHES_BYPASS_VALIDATION },
 			{ COMPRESS_STATES,         IDC_PATHS_NST_COMPRESS              }
@@ -114,6 +118,7 @@ namespace Nestopia
 			{ IDC_PATHS_BATTERY_BROWSE,     &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_NST_BROWSE,         &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_SAMPLES_BROWSE,     &Paths::OnCmdBrowse      },
+			{ IDC_PATHS_CHEATS_BROWSE,      &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_PATCHES_BROWSE,     &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_SCREENSHOTS_BROWSE, &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_IMAGE_LAST,         &Paths::OnCmdLastVisited },
@@ -209,6 +214,30 @@ namespace Nestopia
 			}
 
 			{
+				Configuration::ConstSection patches( paths["cheats"] );
+
+				settings.dirs[DIR_CHEATS] = patches["directory"].Str();
+
+				if (patches["auto-load"].Yes())
+				{
+					settings.flags[CHEATS_AUTO_LOAD] = true;
+				}
+				else if (patches["auto-load"].No())
+				{
+					settings.flags[CHEATS_AUTO_LOAD] = false;
+				}
+
+				if (patches["auto-save"].Yes())
+				{
+					settings.flags[CHEATS_AUTO_SAVE] = true;
+				}
+				else if (patches["auto-save"].No())
+				{
+					settings.flags[CHEATS_AUTO_SAVE] = false;
+				}
+			}
+
+			{
 				Configuration::ConstSection patches( paths["patches"] );
 
 				settings.dirs[DIR_PATCHES] = patches["directory"].Str();
@@ -291,6 +320,14 @@ namespace Nestopia
 				Configuration::Section samples( paths["samples"] );
 
 				samples[ "directory" ].Str() = settings.dirs[DIR_SAMPLES];
+			}
+
+			{
+				Configuration::Section patches( paths["cheats"] );
+
+				patches[ "directory" ].Str() = settings.dirs[DIR_CHEATS];
+				patches[ "auto-load" ].YesNo() = settings.flags[CHEATS_AUTO_LOAD];
+				patches[ "auto-save" ].YesNo() = settings.flags[CHEATS_AUTO_SAVE];
 			}
 
 			{

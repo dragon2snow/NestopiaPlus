@@ -32,7 +32,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		const dword Apu::Cycles::frameClocks[2][4] =
+		const dword Apu::Cycles::frameClocks[3][4] =
 		{
 			{
 				CPU_RP2A03_CC * 29830UL,
@@ -45,10 +45,16 @@ namespace Nes
 				CPU_RP2A07_CC,
 				CPU_RP2A07_CC,
 				CPU_RP2A07_CC * (33254UL - 2)
+			},
+			{
+				CPU_DENDY_CC * 29830UL,
+				CPU_DENDY_CC,
+				CPU_DENDY_CC,
+				CPU_DENDY_CC * (29830UL - 2),
 			}
 		};
 
-		const dword Apu::Cycles::oscillatorClocks[2][2][4] =
+		const dword Apu::Cycles::oscillatorClocks[3][2][4] =
 		{
 			{
 				{
@@ -77,6 +83,20 @@ namespace Nes
 					CPU_RP2A07_CC * 8312UL,
 					CPU_RP2A07_CC * (8314UL + 8312)
 				}
+			},
+			{
+				{
+					CPU_DENDY_CC * (7459UL - 1),
+					CPU_DENDY_CC * 7456UL,
+					CPU_DENDY_CC * 7458UL,
+					CPU_DENDY_CC * 7458UL
+				},
+				{
+					CPU_DENDY_CC * 7458UL,
+					CPU_DENDY_CC * 7456UL,
+					CPU_DENDY_CC * 7458UL,
+					CPU_DENDY_CC * (7458UL + 7452)
+				}
 			}
 		};
 
@@ -92,7 +112,7 @@ namespace Nes
 			0x10, 0x1C, 0x20, 0x1E
 		};
 
-		const word Apu::Noise::lut[2][16] =
+		const word Apu::Noise::lut[3][16] =
 		{
 			{
 				0x004, 0x008, 0x010, 0x020,
@@ -105,10 +125,16 @@ namespace Nes
 				0x03C, 0x058, 0x076, 0x094,
 				0x0BC, 0x0EC, 0x162, 0x1D8,
 				0x2C4, 0x3B0, 0x762, 0xEC2
+			},
+			{
+				0x004, 0x008, 0x010, 0x020,
+				0x040, 0x060, 0x080, 0x0A0,
+				0x0CA, 0x0FE, 0x17C, 0x1FC,
+				0x2FA, 0x3F8, 0x7F2, 0xFE4
 			}
 		};
 
-		const word Apu::Dmc::lut[2][16] =
+		const word Apu::Dmc::lut[3][16] =
 		{
 			{
 				0x1AC * CPU_RP2A03_CC,
@@ -145,6 +171,24 @@ namespace Nes
 				0x04E * CPU_RP2A07_CC,
 				0x042 * CPU_RP2A07_CC,
 				0x032 * CPU_RP2A07_CC
+			},
+			{
+				0x1AC * CPU_DENDY_CC,
+				0x17C * CPU_DENDY_CC,
+				0x154 * CPU_DENDY_CC,
+				0x140 * CPU_DENDY_CC,
+				0x11E * CPU_DENDY_CC,
+				0x0FE * CPU_DENDY_CC,
+				0x0E2 * CPU_DENDY_CC,
+				0x0D6 * CPU_DENDY_CC,
+				0x0BE * CPU_DENDY_CC,
+				0x0A0 * CPU_DENDY_CC,
+				0x08E * CPU_DENDY_CC,
+				0x080 * CPU_DENDY_CC,
+				0x06A * CPU_DENDY_CC,
+				0x054 * CPU_DENDY_CC,
+				0x048 * CPU_DENDY_CC,
+				0x036 * CPU_DENDY_CC
 			}
 		};
 
@@ -158,10 +202,9 @@ namespace Nes
 		extChannel (NULL),
 		buffer     (16)
 		{
-			NST_COMPILE_ASSERT( CPU_RP2A03 == 0 && CPU_RP2A07 == 1 );
+			NST_COMPILE_ASSERT( CPU_RP2A03 == 0 && CPU_RP2A07 == 1 && CPU_DENDY == 2 );
 
 			PowerOff();
-			UpdateSettings();
 		}
 
 		void Apu::PowerOff()
@@ -176,17 +219,20 @@ namespace Nes
 
 		void Apu::Reset(const bool on,const bool hard)
 		{
+			if (on)
+				UpdateSettings();
+
 			updater = &Apu::SyncOff;
 
-			cycles.Reset( extChannel );
-			synchronizer.Resync( settings.speed, cycles.model );
+			cycles.Reset( extChannel, cpu.GetModel() );
+			synchronizer.Resync( settings.speed, cpu );
 
 			for (uint i=0; i < 2; ++i)
 				square[i].Reset();
 
 			triangle.Reset();
-			noise.Reset( cycles.model );
-			dmc.Reset( cycles.model );
+			noise.Reset( cpu.GetModel() );
+			dmc.Reset( cpu.GetModel() );
 
 			dcBlocker.Reset();
 
@@ -196,28 +242,34 @@ namespace Nes
 
 			if (on)
 			{
-				cpu.Map( 0x4000 ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_4000 );
-				cpu.Map( 0x4001 ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_4001 );
-				cpu.Map( 0x4002 ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_4002 );
-				cpu.Map( 0x4003 ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_4003 );
-				cpu.Map( 0x4004 ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_4000 );
-				cpu.Map( 0x4005 ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_4001 );
-				cpu.Map( 0x4006 ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_4002 );
-				cpu.Map( 0x4007 ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_4003 );
-				cpu.Map( 0x4008 ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_4008 );
-				cpu.Map( 0x400A ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_400A );
-				cpu.Map( 0x400B ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_400B );
-				cpu.Map( 0x400C ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_400C );
-				cpu.Map( 0x400E ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_400E );
-				cpu.Map( 0x400F ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_400F );
-				cpu.Map( 0x4010 ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_4010 );
-				cpu.Map( 0x4011 ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_4011 );
-				cpu.Map( 0x4012 ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_4012 );
-				cpu.Map( 0x4013 ).Set( this, &Apu::Peek_4xxx, &Apu::Poke_4013 );
+				cpu.Map( 0x4000 ).Set( this, &Apu::Peek_40xx, &Apu::Poke_4000 );
+				cpu.Map( 0x4001 ).Set( this, &Apu::Peek_40xx, &Apu::Poke_4001 );
+				cpu.Map( 0x4002 ).Set( this, &Apu::Peek_40xx, &Apu::Poke_4002 );
+				cpu.Map( 0x4003 ).Set( this, &Apu::Peek_40xx, &Apu::Poke_4003 );
+				cpu.Map( 0x4004 ).Set( this, &Apu::Peek_40xx, &Apu::Poke_4000 );
+				cpu.Map( 0x4005 ).Set( this, &Apu::Peek_40xx, &Apu::Poke_4001 );
+				cpu.Map( 0x4006 ).Set( this, &Apu::Peek_40xx, &Apu::Poke_4002 );
+				cpu.Map( 0x4007 ).Set( this, &Apu::Peek_40xx, &Apu::Poke_4003 );
+				cpu.Map( 0x4008 ).Set( this, &Apu::Peek_40xx, &Apu::Poke_4008 );
+				cpu.Map( 0x400A ).Set( this, &Apu::Peek_40xx, &Apu::Poke_400A );
+				cpu.Map( 0x400B ).Set( this, &Apu::Peek_40xx, &Apu::Poke_400B );
+				cpu.Map( 0x400C ).Set( this, &Apu::Peek_40xx, &Apu::Poke_400C );
+				cpu.Map( 0x400E ).Set( this, &Apu::Peek_40xx, &Apu::Poke_400E );
+				cpu.Map( 0x400F ).Set( this, &Apu::Peek_40xx, &Apu::Poke_400F );
+				cpu.Map( 0x4010 ).Set( this, &Apu::Peek_40xx, &Apu::Poke_4010 );
+				cpu.Map( 0x4011 ).Set( this, &Apu::Peek_40xx, &Apu::Poke_4011 );
+				cpu.Map( 0x4012 ).Set( this, &Apu::Peek_40xx, &Apu::Poke_4012 );
+				cpu.Map( 0x4013 ).Set( this, &Apu::Peek_40xx, &Apu::Poke_4013 );
 				cpu.Map( 0x4015 ).Set( this, &Apu::Peek_4015, &Apu::Poke_4015 );
 
-				if (hard)
+				if (cpu.GetModel() == CPU_DENDY)
+				{
+					ctrl = STATUS_NO_FRAME_IRQ;
+				}
+				else if (hard)
+				{
 					ctrl = STATUS_FRAME_IRQ_ENABLE;
+				}
 
 				if (ctrl == STATUS_FRAME_IRQ_ENABLE)
 					cycles.frameIrqClock = (cycles.frameCounter / cycles.fixed) - cpu.GetClock();
@@ -227,7 +279,10 @@ namespace Nes
 			}
 			else
 			{
-				ctrl = STATUS_FRAME_IRQ_ENABLE;
+				if (cpu.GetModel() == CPU_DENDY)
+					ctrl = STATUS_NO_FRAME_IRQ;
+				else
+					ctrl = STATUS_FRAME_IRQ_ENABLE;
 			}
 		}
 
@@ -317,6 +372,15 @@ namespace Nes
 			return RESULT_OK;
 		}
 
+		void Apu::Mute(const bool mute)
+		{
+			if (settings.muted != mute)
+			{
+				settings.muted = mute;
+				UpdateSettings();
+			}
+		}
+
 		void Apu::SetAutoTranspose(const bool transpose)
 		{
 			if (settings.transpose != transpose)
@@ -335,31 +399,21 @@ namespace Nes
 			}
 		}
 
-		void Apu::UpdateModel()
-		{
-			UpdateSettings( cpu.GetModel() );
-		}
-
 		void Apu::UpdateSettings()
 		{
-			UpdateSettings( cycles.model );
-		}
-
-		void Apu::UpdateSettings(const CpuModel model)
-		{
-			cycles.Update( settings.rate, settings.speed, model );
-			synchronizer.Reset( settings.speed, model, settings.rate );
+			cycles.Update( settings.rate, settings.speed, cpu );
+			synchronizer.Reset( settings.speed, settings.rate, cpu );
 			dcBlocker.Reset();
 			buffer.Reset( settings.bits );
 
 			Cycle rate; uint fixed;
 			CalculateOscillatorClock( rate, fixed );
 
-			square[0].UpdateSettings ( rate, fixed,     (settings.volumes[ Channel::APU_SQUARE1  ] * uint(Channel::OUTPUT_MUL) + Channel::DEFAULT_VOLUME/2) / Channel::DEFAULT_VOLUME );
-			square[1].UpdateSettings ( rate, fixed,     (settings.volumes[ Channel::APU_SQUARE2  ] * uint(Channel::OUTPUT_MUL) + Channel::DEFAULT_VOLUME/2) / Channel::DEFAULT_VOLUME );
-			triangle.UpdateSettings  ( rate, fixed,     (settings.volumes[ Channel::APU_TRIANGLE ] * uint(Channel::OUTPUT_MUL) + Channel::DEFAULT_VOLUME/2) / Channel::DEFAULT_VOLUME );
-			noise.UpdateSettings     ( rate, fixed,     (settings.volumes[ Channel::APU_NOISE    ] * uint(Channel::OUTPUT_MUL) + Channel::DEFAULT_VOLUME/2) / Channel::DEFAULT_VOLUME, model );
-			dmc.UpdateSettings       ( cycles.dmcClock, (settings.volumes[ Channel::APU_DPCM     ] * uint(Channel::OUTPUT_MUL) + Channel::DEFAULT_VOLUME/2) / Channel::DEFAULT_VOLUME, model );
+			square[0].UpdateSettings ( settings.muted ? 0 : settings.volumes[ Channel::APU_SQUARE1  ], rate, fixed );
+			square[1].UpdateSettings ( settings.muted ? 0 : settings.volumes[ Channel::APU_SQUARE2  ], rate, fixed );
+			triangle.UpdateSettings  ( settings.muted ? 0 : settings.volumes[ Channel::APU_TRIANGLE ], rate, fixed, cpu.GetModel() );
+			noise.UpdateSettings     ( settings.muted ? 0 : settings.volumes[ Channel::APU_NOISE    ], rate, fixed );
+			dmc.UpdateSettings       ( settings.muted ? 0 : settings.volumes[ Channel::APU_DPCM     ] );
 
 			UpdateVolumes();
 		}
@@ -378,30 +432,24 @@ namespace Nes
 
 		void Apu::Resync(const dword rate)
 		{
-			cycles.Update( rate, settings.speed, cycles.model );
+			cycles.Update( rate, settings.speed, cpu );
 			ClearBuffers( false );
 		}
 
 		void Apu::CalculateOscillatorClock(Cycle& rate,uint& fixed) const
 		{
-			static const dword clocks[2][3] =
-			{
-				{ PPU_RP2C02_FPS, CLK_NTSC, CPU_RP2A03_CC * CLK_NTSC_DIV },
-				{ PPU_RP2C07_FPS, CLK_PAL,  CPU_RP2A07_CC * CLK_PAL_DIV  }
-			};
-
 			dword sampleRate = settings.rate;
 
 			if (settings.transpose && settings.speed)
-				sampleRate = sampleRate * clocks[cycles.model][0] / settings.speed;
+				sampleRate = sampleRate * cpu.GetFps() / settings.speed;
 
 			uint multiplier = 0;
-			const dword masterRate = clocks[cycles.model][1];
+			const qword clockBase = cpu.GetClockBase();
 
-			while (++multiplier < 0x1000 && qword(masterRate) * (multiplier+1) / sampleRate <= 0x7FFFF && qword(masterRate) * multiplier % sampleRate);
+			while (++multiplier < 0x1000 && clockBase * (multiplier+1) / sampleRate <= 0x7FFFF && clockBase * multiplier % sampleRate);
 
-			rate = qword(masterRate) * multiplier / sampleRate;
-			fixed = clocks[cycles.model][2] * multiplier;
+			rate = clockBase * multiplier / sampleRate;
+			fixed = cpu.GetClockDivider() * cpu.GetClock() * multiplier;
 		}
 
 		void Apu::SaveState(State::Saver& state,const dword baseChunk) const
@@ -551,12 +599,12 @@ namespace Nes
 
 					case AsciiId<'N','O','I'>::V:
 
-						noise.LoadState( state, cycles.model );
+						noise.LoadState( state, cpu.GetModel() );
 						break;
 
 					case AsciiId<'D','M','C'>::V:
 
-						dmc.LoadState( state, cpu, cycles.model, cycles.dmcClock );
+						dmc.LoadState( state, cpu, cpu.GetModel(), cycles.dmcClock );
 						break;
 				}
 
@@ -570,7 +618,7 @@ namespace Nes
 			}
 			else if (cycles.frameIrqClock == Cpu::CYCLE_MAX)
 			{
-				cycles.frameIrqClock = (cycles.frameCounter / cycles.fixed) + (3 - cycles.frameDivider) * (Cycles::frameClocks[cycles.model][0] / 4);
+				cycles.frameIrqClock = (cycles.frameCounter / cycles.fixed) + (3 - cycles.frameDivider) * (Cycles::frameClocks[cpu.GetModel()][0] / 4);
 				cycles.frameIrqRepeat = 0;
 			}
 		}
@@ -789,7 +837,7 @@ namespace Nes
 					Sound::Output::unlockCallback( *stream );
 				}
 
-				if (const dword rate = synchronizer.Clock( streamed, cycles.model, settings.rate ))
+				if (const dword rate = synchronizer.Clock( streamed, settings.rate, cpu ))
 					Resync( rate );
 			}
 
@@ -829,16 +877,16 @@ namespace Nes
 		#endif
 
 		Apu::Settings::Settings()
-		: rate(44100), bits(16), speed(0), transpose(false), stereo(false), audible(true)
+		: rate(44100), bits(16), speed(0), muted(false), transpose(false), stereo(false), audible(true)
 		{
 			for (uint i=0; i < MAX_CHANNELS; ++i)
 				volumes[i] = Channel::DEFAULT_VOLUME;
 		}
 
 		Apu::Cycles::Cycles()
-		: fixed(1), rate(1), model(CPU_RP2A03) {}
+		: fixed(1), rate(1) {}
 
-		void Apu::Cycles::Reset(const bool extChannel)
+		void Apu::Cycles::Reset(const bool extChannel,const CpuModel model)
 		{
 			rateCounter = 0;
 			frameDivider = 0;
@@ -849,7 +897,7 @@ namespace Nes
 			extCounter = (extChannel ? 0UL : Cpu::CYCLE_MAX);
 		}
 
-		void Apu::Cycles::Update(dword sampleRate,const uint speed,const CpuModel m)
+		void Apu::Cycles::Update(dword sampleRate,const uint speed,const Cpu& cpu)
 		{
 			frameCounter /= fixed;
 			rateCounter /= fixed;
@@ -857,36 +905,16 @@ namespace Nes
 			if (extCounter != Cpu::CYCLE_MAX)
 				extCounter /= fixed;
 
-			if (model != m)
-			{
-				model = m;
-
-				frameCounter = Cpu::ClockConvert( frameCounter, m );
-				rateCounter = Cpu::ClockConvert( rateCounter, m );
-
-				if (extCounter != Cpu::CYCLE_MAX)
-					extCounter = Cpu::ClockConvert( extCounter, m );
-
-				if (frameIrqClock != Cpu::CYCLE_MAX)
-					frameIrqClock = Cpu::ClockConvert( frameIrqClock, m );
-			}
-
-			static const dword clocks[2][3] =
-			{
-				{ PPU_RP2C02_FPS, CLK_NTSC, CLK_NTSC_DIV },
-				{ PPU_RP2C07_FPS, CLK_PAL,  CLK_PAL_DIV  }
-			};
-
 			if (speed)
-				sampleRate = sampleRate * clocks[model][0] / speed;
+				sampleRate = sampleRate * cpu.GetFps() / speed;
 
 			uint multiplier = 0;
-			const dword masterRate = clocks[model][1];
+			const qword clockBase = cpu.GetClockBase();
 
-			while (++multiplier < 512 && qword(masterRate) * multiplier % sampleRate);
+			while (++multiplier < 512 && clockBase * multiplier % sampleRate);
 
-			rate = qword(masterRate) * multiplier / sampleRate;
-			fixed = clocks[model][2] * multiplier;
+			rate = clockBase * multiplier / sampleRate;
+			fixed = cpu.GetClockDivider() * multiplier;
 
 			frameCounter *= fixed;
 			rateCounter *= fixed;
@@ -898,33 +926,28 @@ namespace Nes
 		Apu::Synchronizer::Synchronizer()
 		: rate(0) {}
 
-		void Apu::Synchronizer::Resync(uint speed,CpuModel model)
+		void Apu::Synchronizer::Resync(uint speed,const Cpu& cpu)
 		{
 			duty = 0;
 			streamed = 0;
 
-			if (speed == 0 || speed == uint(model == CPU_RP2A03 ? PPU_RP2C02_FPS : PPU_RP2C07_FPS))
+			if (speed == 0 || speed == cpu.GetFps())
 				sync = 4;
 			else
 				sync = 0;
 		}
 
-		void Apu::Synchronizer::Reset(uint speed,CpuModel model,dword sampleRate)
+		void Apu::Synchronizer::Reset(uint speed,dword sampleRate,const Cpu& cpu)
 		{
 			rate = sampleRate;
-			Resync( speed, model );
+			Resync( speed, cpu );
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NST_SINGLE_CALL dword Apu::Synchronizer::Clock
-		(
-			const dword output,
-			const CpuModel model,
-			const dword sampleRate
-		)
+		NST_SINGLE_CALL dword Apu::Synchronizer::Clock(const dword output,const dword sampleRate,const Cpu& cpu)
 		{
 			if (sync)
 			{
@@ -939,7 +962,7 @@ namespace Nes
 				{
 					duty = 60*4;
 
-					dword actualRate = streamed / (60*8) * (model == CPU_RP2A03 ? PPU_RP2C02_FPS : PPU_RP2C07_FPS);
+					dword actualRate = streamed / (60*8) * cpu.GetFps();
 					const dword limit = sampleRate / 21;
 
 					if (actualRate <= sampleRate-limit)
@@ -1154,14 +1177,29 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		CpuModel Apu::Channel::GetModel() const
+		Cycle Apu::Channel::GetCpuClockBase() const
 		{
-			return apu.cycles.model;
+			return apu.cpu.GetClockBase();
+		}
+
+		uint Apu::Channel::GetCpuClockDivider() const
+		{
+			return apu.cpu.GetClockDivider();
+		}
+
+		Cycle Apu::Channel::GetCpuClock(uint clock) const
+		{
+			return apu.cpu.GetClock(clock);
 		}
 
 		dword Apu::Channel::GetSampleRate() const
 		{
 			return apu.settings.rate;
+		}
+
+		bool Apu::Channel::IsMuted() const
+		{
+			return apu.settings.muted;
 		}
 
 		void Apu::Channel::Update() const
@@ -1239,10 +1277,10 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Apu::Square::UpdateSettings(dword r,uint f,uint v)
+		void Apu::Square::UpdateSettings(uint v,dword r,uint f)
 		{
 			Oscillator::UpdateSettings( r, f );
-			envelope.SetOutputVolume( v );
+			envelope.SetOutputVolume( (v * Channel::OUTPUT_MUL + Channel::DEFAULT_VOLUME/2) / Channel::DEFAULT_VOLUME );
 			active = CanOutput();
 		}
 
@@ -1333,7 +1371,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NST_SINGLE_CALL void Apu::Square::Disable(const uint disable)
+		NST_SINGLE_CALL void Apu::Square::Disable(const bool disable)
 		{
 			active &= lengthCounter.Disable( disable );
 		}
@@ -1459,7 +1497,7 @@ namespace Nes
 
 				if (timer >= 0)
 				{
-					amp = dword(envelope.Volume()) >> form[step];
+					amp = envelope.Volume() >> form[step];
 				}
 				else
 				{
@@ -1467,7 +1505,7 @@ namespace Nes
 
 					do
 					{
-						sum += NST_MIN(dword(-timer),frequency) >> form[step = (step + 1) & 0x7];
+						sum += NST_MIN(-timer,frequency) >> form[step = (step + 1) & 0x7];
 						timer += idword(frequency);
 					}
 					while (timer < 0);
@@ -1480,7 +1518,7 @@ namespace Nes
 			{
 				if (timer < 0)
 				{
-					const uint count = (dword(-timer) + frequency - 1) / frequency;
+					const uint count = (-timer + frequency - 1) / frequency;
 					step = (step + count) & 0x7;
 					timer += idword(count * frequency);
 				}
@@ -1531,10 +1569,14 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Apu::Triangle::UpdateSettings(dword r,uint f,uint v)
+		void Apu::Triangle::UpdateSettings(uint v,dword r,uint f,CpuModel model)
 		{
 			Oscillator::UpdateSettings( r, f );
-			outputVolume = v;
+
+			if (model == CPU_DENDY)
+				v = v * 57 / Channel::DEFAULT_VOLUME;
+
+			outputVolume = (v * Channel::OUTPUT_MUL + Channel::DEFAULT_VOLUME/2) / Channel::DEFAULT_VOLUME;
 			active = CanOutput();
 		}
 
@@ -1596,7 +1638,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NST_SINGLE_CALL void Apu::Triangle::Disable(const uint disable)
+		NST_SINGLE_CALL void Apu::Triangle::Disable(const bool disable)
 		{
 			active &= lengthCounter.Disable( disable );
 		}
@@ -1675,7 +1717,7 @@ namespace Nes
 
 					do
 					{
-						sum += NST_MIN(dword(-timer),frequency) * pyramid[step = (step + 1) & 0x1F];
+						sum += NST_MIN(-timer,frequency) * pyramid[step = (step + 1) & 0x1F];
 						timer += idword(frequency);
 					}
 					while (timer < 0);
@@ -1743,19 +1785,10 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Apu::Noise::UpdateSettings(dword r,uint f,uint v,CpuModel model)
+		void Apu::Noise::UpdateSettings(uint v,dword r,uint f)
 		{
 			Oscillator::UpdateSettings( r, f );
-
-			const dword newFrequency = lut[model][GetFrequencyIndex()] * dword(fixed);
-
-			if (frequency != newFrequency)
-			{
-				frequency = newFrequency;
-				timer = 0;
-			}
-
-			envelope.SetOutputVolume( v );
+			envelope.SetOutputVolume( (v * Channel::OUTPUT_MUL + Channel::DEFAULT_VOLUME/2) / Channel::DEFAULT_VOLUME );
 			active = CanOutput();
 		}
 
@@ -1808,7 +1841,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NST_SINGLE_CALL void Apu::Noise::Disable(const uint disable)
+		NST_SINGLE_CALL void Apu::Noise::Disable(const bool disable)
 		{
 			active &= lengthCounter.Disable( disable );
 		}
@@ -1869,7 +1902,7 @@ namespace Nes
 						bits = (bits << 1) | ((bits >> 14 ^ bits >> shifter) & 0x1);
 
 						if (!(bits & 0x4000))
-							sum += NST_MIN(dword(-timer),frequency);
+							sum += NST_MIN(-timer,frequency);
 
 						timer += idword(frequency);
 					}
@@ -1926,13 +1959,9 @@ namespace Nes
 			return lut[model][0];
 		}
 
-		void Apu::Dmc::UpdateSettings(Cycle& dmcClock,const uint newVolume,const CpuModel model)
+		void Apu::Dmc::UpdateSettings(uint v)
 		{
-			if (frequency != lut[model][regs.ctrl & REG0_FREQUENCY])
-			{
-				frequency = lut[model][regs.ctrl & REG0_FREQUENCY];
-				dmcClock = Cpu::ClockConvert( dmcClock, model );
-			}
+			v = (v * Channel::OUTPUT_MUL + Channel::DEFAULT_VOLUME/2) / Channel::DEFAULT_VOLUME;
 
 			if (outputVolume)
 				linSample /= outputVolume;
@@ -1940,11 +1969,11 @@ namespace Nes
 			if (outputVolume)
 				curSample /= outputVolume;
 
-			linSample *= newVolume;
-			curSample *= newVolume;
-			outputVolume = newVolume;
+			linSample *= v;
+			curSample *= v;
+			outputVolume = v;
 
-			if (!newVolume)
+			if (!v)
 				out.active = false;
 		}
 
@@ -2036,7 +2065,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NST_SINGLE_CALL void Apu::Dmc::Disable(const uint disable,Cpu& cpu)
+		NST_SINGLE_CALL void Apu::Dmc::Disable(const bool disable,Cpu& cpu)
 		{
 			cpu.ClearIRQ( Cpu::IRQ_DMC );
 
@@ -2077,13 +2106,34 @@ namespace Nes
 			return linSample;
 		}
 
-		void Apu::Dmc::DoDMA(Cpu& cpu,const Cycle clock)
+		void Apu::Dmc::DoDMA(Cpu& cpu,const Cycle clock,const uint readAddress)
 		{
-			NST_VERIFY( !dma.buffered );
+			NST_VERIFY( !dma.buffered && (!readAddress || !cpu.IsWriteCycle(clock)) );
 
-			cpu.StealCycles( cpu.GetClock(cpu.IsWriteCycle(clock) ? 3 : 4) );
+			if (!readAddress)
+			{
+				cpu.StealCycles( cpu.GetClock(cpu.IsWriteCycle(clock) ? 2 : 3) );
+			}
+			else if (cpu.GetCycles() != clock)
+			{
+				cpu.StealCycles( cpu.GetClock(3) );
+			}
+			else
+			{
+				NST_DEBUG_MSG("DMA/Read conflict!");
+
+				cpu.StealCycles( cpu.GetClock(1) );
+
+				if ((readAddress & 0xF000) != 0x4000)
+					cpu.Peek( readAddress );
+
+				cpu.StealCycles( cpu.GetClock(1) );
+				cpu.Peek( readAddress );
+				cpu.StealCycles( cpu.GetClock(1) );
+			}
 
 			dma.buffer = cpu.Peek( dma.address );
+			cpu.StealCycles( cpu.GetClock() );
 			dma.address = 0x8000 | ((dma.address + 1U) & 0x7FFF);
 			dma.buffered = true;
 
@@ -2148,7 +2198,7 @@ namespace Nes
 			curSample = out.dac * outputVolume;
 		}
 
-		NST_SINGLE_CALL void Apu::Dmc::ClockDMA(Cpu& cpu,Cycle& clock)
+		NST_SINGLE_CALL void Apu::Dmc::ClockDMA(Cpu& cpu,Cycle& clock,const uint readAddress)
 		{
 			const Cycle tmp = clock;
 			clock += frequency;
@@ -2169,7 +2219,7 @@ namespace Nes
 					out.buffer = dma.buffer;
 
 					if (dma.lengthCounter)
-						DoDMA( cpu, tmp );
+						DoDMA( cpu, tmp, readAddress );
 				}
 			}
 		}
@@ -2191,7 +2241,7 @@ namespace Nes
 		NST_NO_INLINE void Apu::ClearBuffers(bool resync)
 		{
 			if (resync)
-				synchronizer.Resync( settings.speed, cycles.model );
+				synchronizer.Resync( settings.speed, cpu );
 
 			square[0].ClearAmp();
 			square[1].ClearAmp();
@@ -2219,10 +2269,10 @@ namespace Nes
 			return NST_MIN(cycles.dmcClock,cycles.frameIrqClock);
 		}
 
-		void Apu::ClockDMA()
+		void Apu::ClockDMA(uint readAddress)
 		{
 			if (cycles.dmcClock <= cpu.GetCycles())
-				ClockDmc( cpu.GetCycles() );
+				ClockDmc( cpu.GetCycles(), readAddress );
 		}
 
 		NST_NO_INLINE void Apu::ClockOscillators(const bool twoClocks)
@@ -2243,7 +2293,7 @@ namespace Nes
 			}
 		}
 
-		NST_NO_INLINE void Apu::ClockDmc(const Cycle target)
+		NST_NO_INLINE void Apu::ClockDmc(const Cycle target,const uint readAddress)
 		{
 			NST_ASSERT( cycles.dmcClock <= target );
 
@@ -2255,7 +2305,7 @@ namespace Nes
 					dmc.Update();
 				}
 
-				dmc.ClockDMA( cpu, cycles.dmcClock );
+				dmc.ClockDMA( cpu, cycles.dmcClock, readAddress );
 			}
 			while (cycles.dmcClock <= target);
 		}
@@ -2268,7 +2318,7 @@ namespace Nes
 			ClockOscillators( cycles.frameDivider & 0x1U );
 
 			cycles.frameDivider = (cycles.frameDivider + 1) & 0x3U;
-			cycles.frameCounter += Cycles::oscillatorClocks[cycles.model][ctrl >> 7][cycles.frameDivider] * cycles.fixed;
+			cycles.frameCounter += Cycles::oscillatorClocks[cpu.GetModel()][ctrl >> 7][cycles.frameDivider] * cycles.fixed;
 		}
 
 		NST_NO_INLINE void Apu::ClockFrameIRQ(const Cycle target)
@@ -2282,7 +2332,7 @@ namespace Nes
 
 			do
 			{
-				clock += Cycles::frameClocks[cycles.model][1 + repeat++ % 3];
+				clock += Cycles::frameClocks[cpu.GetModel()][1 + repeat++ % 3];
 			}
 			while (clock <= target);
 
@@ -2353,7 +2403,7 @@ namespace Nes
 		NES_POKE_D(Apu,400E)
 		{
 			Update();
-			noise.WriteReg2( data, cycles.model );
+			noise.WriteReg2( data, cpu.GetModel() );
 		}
 
 		NES_POKE_D(Apu,400F)
@@ -2363,7 +2413,7 @@ namespace Nes
 
 		NES_POKE_D(Apu,4010)
 		{
-			if (!dmc.WriteReg0( data, cycles.model ))
+			if (!dmc.WriteReg0( data, cpu.GetModel() ))
 				cpu.ClearIRQ( Cpu::IRQ_DMC );
 		}
 
@@ -2396,11 +2446,11 @@ namespace Nes
 			dmc.Disable       ( data & 0x10, cpu );
 		}
 
-		NES_PEEK(Apu,4015)
+		NES_PEEK_A(Apu,4015)
 		{
 			NST_COMPILE_ASSERT( Cpu::IRQ_FRAME == 0x40 && Cpu::IRQ_DMC == 0x80 );
 
-			const Cycle elapsed = cpu.Update();
+			const Cycle elapsed = cpu.Update( address );
 
 			if (cycles.frameIrqClock <= elapsed)
 				ClockFrameIRQ( elapsed );
@@ -2437,7 +2487,7 @@ namespace Nes
 
 			data &= STATUS_BITS;
 
-			cycles.frameCounter = (next + Cycles::oscillatorClocks[cycles.model][data >> 7][0]) * cycles.fixed;
+			cycles.frameCounter = (next + Cycles::oscillatorClocks[cpu.GetModel()][data >> 7][0]) * cycles.fixed;
 			cycles.frameDivider = 0;
 			cycles.frameIrqRepeat = 0;
 
@@ -2455,11 +2505,11 @@ namespace Nes
 			}
 			else
 			{
-				cycles.frameIrqClock = next + Cycles::frameClocks[cycles.model][0];
+				cycles.frameIrqClock = next + Cycles::frameClocks[cpu.GetModel()][0];
 			}
 		}
 
-		NES_PEEK(Apu,4xxx)
+		NES_PEEK(Apu,40xx)
 		{
 			return 0x40;
 		}

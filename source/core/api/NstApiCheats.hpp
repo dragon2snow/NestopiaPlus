@@ -84,7 +84,7 @@ namespace Nes
 				bool useCompare;
 
 				/**
-				* Constructor
+				* Constructor.
 				*
 				* @param a address
 				* @param v value

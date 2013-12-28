@@ -536,7 +536,7 @@ namespace Nes
 			routine.reset = Routine::RESET;
 			routine.nmi = Routine::NMI;
 
-			cpu.SetFrameCycles( cpu.GetModel() == CPU_RP2A03 ? PPU_RP2C02_HVSYNC : PPU_RP2C07_HVSYNC );
+			cpu.SetFrameCycles( cpu.GetModel() == CPU_RP2A07 ? PPU_RP2C07_HVSYNC : PPU_RP2C02_HVSYNC );
 		}
 
 		bool Nsf::PowerOff()

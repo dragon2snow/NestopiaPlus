@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstBoard.hpp"
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 #include "NstBoardBmcVrc4.hpp"
 
 namespace Nes

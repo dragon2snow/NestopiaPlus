@@ -80,14 +80,17 @@ namespace Nes
 			bool IsOddCycle() const;
 			bool IsWriteCycle(Cycle) const;
 
+			Cycle GetClockBase() const;
+			uint  GetClockDivider() const;
+			dword GetTime(Cycle) const;
+			dword GetFps() const;
+
 			void SetModel(CpuModel);
 			void AddHook(const Hook&);
 			void RemoveHook(const Hook&);
 
 			void SaveState(State::Saver&,dword,dword) const;
 			void LoadState(State::Loader&,dword,dword,dword);
-
-			static Cycle ClockConvert(Cycle,CpuModel);
 
 		private:
 
@@ -343,7 +346,7 @@ namespace Nes
 
 			struct Cycles
 			{
-				void SetModel(CpuModel);
+				void UpdateTable(CpuModel);
 				inline uint InterruptEdge() const;
 
 				Cycle count;
@@ -386,7 +389,6 @@ namespace Nes
 			struct Interrupt
 			{
 				void Reset();
-				void SetModel(CpuModel);
 
 				Cycle nmiClock;
 				Cycle irqClock;
@@ -419,7 +421,7 @@ namespace Nes
 				typedef byte (&Ref)[RAM_SIZE];
 				typedef const byte (&ConstRef)[RAM_SIZE];
 
-				void Reset();
+				void Reset(CpuModel);
 
 				NES_DECL_PEEK( Ram_0 );
 				NES_DECL_POKE( Ram_0 );
@@ -495,9 +497,9 @@ namespace Nes
 				return apu;
 			}
 
-			Cycle Update()
+			Cycle Update(uint readAddress=0)
 			{
-				apu.ClockDMA();
+				apu.ClockDMA( readAddress );
 				return cycles.count;
 			}
 
@@ -528,7 +530,7 @@ namespace Nes
 
 			Region GetRegion() const
 			{
-				return GetModel() == CPU_RP2A03 ? REGION_NTSC : REGION_PAL;
+				return model == CPU_RP2A03 ? REGION_NTSC : REGION_PAL;
 			}
 
 			Cycle GetClock(uint count=1) const

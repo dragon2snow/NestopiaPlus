@@ -155,7 +155,7 @@ namespace Nestopia
 						dipSwitches.SetValue( i, dialog.ComboBox( IDC_DIPSWITCHES_1 + i ).Selection().GetIndex() );
 				}
 
-				dialog.Close( dialog.CheckBox(IDC_DIPSWITCHES_DONTSHOWAGAIN).Checked() );
+				dialog.Close( userOpened ? 0 : dialog.CheckBox(IDC_DIPSWITCHES_DONTSHOWAGAIN).Checked() );
 			}
 
 			return true;

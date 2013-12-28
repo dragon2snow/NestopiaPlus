@@ -50,8 +50,7 @@ namespace Nes
 					prg.SwapBank<SIZE_32K,0x0000>(~0U);
 				}
 
-				chr.SetAccessor( 0, this, &Mmc2::Access_Chr_0000 );
-				chr.SetAccessor( 1, this, &Mmc2::Access_Chr_1000 );
+				chr.SetAccessor( this, &Mmc2::Access_Chr );
 
 				Map( 0xA000U, 0xAFFFU, PRG_SWAP_8K_0    );
 				Map( 0xB000U, 0xEFFFU, &Mmc2::Poke_B000 );
@@ -102,32 +101,22 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			template<uint ADDRESS>
-			NST_FORCE_INLINE uint Mmc2::FetchChr(uint address)
+			NES_ACCESSOR(Mmc2,Chr)
 			{
 				const uint data = chr.Peek( address );
+				uint bank;
 
 				switch (address & 0xFF8)
 				{
-					case 0xFD8: address = (ADDRESS >> 11) + 0; break;
-					case 0xFE8: address = (ADDRESS >> 11) + 1; break;
+					case 0xFD8: bank = (address >> 11 & 0x2) | 0x0; break;
+					case 0xFE8: bank = (address >> 11 & 0x2) | 0x1; break;
 					default: return data;
 				}
 
-				selector[ADDRESS >> 12] = address;
-				chr.SwapBank<SIZE_4K,ADDRESS>( banks[address] );
+				selector[address >> 12] = bank;
+				chr.SwapBank<SIZE_4K>( address & 0x1000, banks[bank] );
 
 				return data;
-			}
-
-			NES_ACCESSOR(Mmc2,Chr_0000)
-			{
-				return FetchChr<0x0000>( address );
-			}
-
-			NES_ACCESSOR(Mmc2,Chr_1000)
-			{
-				return FetchChr<0x1000>( address );
 			}
 
 			NES_POKE_AD(Mmc2,B000)

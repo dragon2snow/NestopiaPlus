@@ -79,6 +79,7 @@ namespace Nestopia
 				bool rewinder;
 				bool useDefaultSpeed;
 				bool useDefaultRewindSpeed;
+				bool noAltSpeedSound;
 				bool noRewindSound;
 				bool pfCounter;
 				uchar speed;
@@ -135,6 +136,11 @@ namespace Nestopia
 			bool NoRewindSound() const
 			{
 				return settings.noRewindSound;
+			}
+
+			bool NoAltSpeedSound() const
+			{
+				return settings.noAltSpeedSound;
 			}
 
 			uint GetSpeed() const

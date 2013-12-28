@@ -222,6 +222,12 @@ namespace Nes
 									p.system.cpu = Profile::System::CPU_RP2A07;
 									p.system.ppu = Profile::System::PPU_RP2C07;
 								}
+								else if (attribute.IsValue( L"dendy" ))
+								{
+									p.system.type = Profile::System::DENDY;
+									p.system.cpu = Profile::System::CPU_DENDY;
+									p.system.ppu = Profile::System::PPU_DENDY;
+								}
 								else if (!strict)
 								{
 									if (favoredSystem == FAVORED_NES_PAL)
@@ -233,6 +239,12 @@ namespace Nes
 									else if (favoredSystem == FAVORED_FAMICOM)
 									{
 										p.system.type = Profile::System::FAMICOM;
+									}
+									else if (favoredSystem == FAVORED_DENDY)
+									{
+										p.system.type = Profile::System::DENDY;
+										p.system.cpu = Profile::System::CPU_DENDY;
+										p.system.ppu = Profile::System::PPU_DENDY;
 									}
 									else
 									{
@@ -691,6 +703,14 @@ namespace Nes
 								break;
 							}
 						}
+						else if (it->system.type == Profile::System::DENDY)
+						{
+							if (favoredSystem == FAVORED_DENDY)
+							{
+								bestMatch = it;
+								break;
+							}
+						}
 					}
 
 					if (askProfile && Api::Cartridge::chooseProfileCallback)
@@ -725,6 +745,7 @@ namespace Nes
 								src->system.type == Profile::System::NES_PAL_A     ? L"(NES-PAL-A)" :
 								src->system.type == Profile::System::NES_PAL_B     ? L"(NES-PAL-B)" :
 								src->system.type == Profile::System::FAMICOM       ? L"(Famicom)" :
+								src->system.type == Profile::System::DENDY         ? L"(Dendy)" :
 								src->system.type == Profile::System::VS_UNISYSTEM  ? L"(VS)" :
 								src->system.type == Profile::System::VS_DUALSYSTEM ? L"(VS)" :
 								src->system.type == Profile::System::PLAYCHOICE_10 ? L"(PC10)" :
@@ -753,6 +774,7 @@ namespace Nes
 								case Profile::System::NES_PAL:
 								case Profile::System::NES_PAL_A:
 								case Profile::System::NES_PAL_B:
+								case Profile::System::DENDY:
 
 									regions |= 0x1;
 									break;

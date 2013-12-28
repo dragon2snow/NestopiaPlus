@@ -69,7 +69,7 @@ namespace Nes
 
 				public:
 
-					struct Irq : ClockUnits::M2<BaseIrq>
+					struct Irq : Timer::M2<BaseIrq>
 					{
 						void WriteLatch0(uint);
 						void WriteLatch1(uint);
@@ -79,7 +79,7 @@ namespace Nes
 						void SaveState(State::Saver&,dword) const;
 
 						explicit Irq(Cpu& c)
-						: ClockUnits::M2<BaseIrq>(c) {}
+						: Timer::M2<BaseIrq>(c) {}
 					};
 
 				private:

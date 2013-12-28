@@ -105,6 +105,8 @@ namespace Nes
 		private:
 
 			void UpdateModels();
+			Result UpdateVideo(PpuModel,ColorMode);
+			ColorMode GetColorMode() const;
 
 			enum
 			{

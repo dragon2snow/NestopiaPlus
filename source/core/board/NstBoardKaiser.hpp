@@ -85,7 +85,7 @@ namespace Nes
 					};
 
 					uint ctrl;
-					ClockUnits::M2<Irq> irq;
+					Timer::M2<Irq> irq;
 				};
 
 				class Ks7032 : public Ks202

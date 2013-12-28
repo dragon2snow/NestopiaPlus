@@ -50,9 +50,8 @@ namespace Nestopia
 				NES_WIDTH            = Nes::Video::Output::WIDTH,
 				NES_HEIGHT           = Nes::Video::Output::HEIGHT,
 				NTSC_WIDTH           = Nes::Video::Output::NTSC_WIDTH,
-				DEFAULT_WIDTH        = 640,
-				DEFAULT_HEIGHT       = 480,
-				DEFAULT_BPP          = 16,
+				MIN_DIALOG_WIDTH     = 640,
+				MIN_DIALOG_HEIGHT    = 480,
 				SCREEN_MATCHED       = 8,
 				SCREEN_STRETCHED     = 255,
 				MIN_SCREEN_CURVATURE = -10,
@@ -164,6 +163,26 @@ namespace Nestopia
 			Managers::Emulator& nes;
 			Dialog dialog;
 			const Managers::Paths& paths;
+
+			class DefaultMode
+			{
+				enum
+				{
+					DEFAULT_4_3_WIDTH = 640,
+					DEFAULT_4_3_HEIGHT = 480,
+					DEFAULT_16_9_WIDTH = 1680,
+					DEFAULT_16_9_HEIGHT = 1050
+				};
+
+			public:
+
+				DefaultMode();
+
+				uint width;
+				uint height;
+			};
+
+			static const DefaultMode defaultMode;
 
 		public:
 

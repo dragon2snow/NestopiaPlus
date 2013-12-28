@@ -399,11 +399,12 @@ namespace Nestopia
 				}
 				else
 				{
-					Window::User::Fail
-					(
-						result == DirectX::Direct2D::SCREENSHOT_UNSUPPORTED ? IDS_SCREENSHOT_UNSUPPORTED_FORMAT :
-                                                                              IDS_SCREENSHOT_SAVE_FAILED
-					);
+					const uint ids = (DirectX::Direct2D::SCREENSHOT_UNSUPPORTED ? IDS_SCREENSHOT_UNSUPPORTED_FORMAT : IDS_SCREENSHOT_SAVE_FAILED);
+
+					if (emulator.NetPlayers())
+						Io::Screen() << Resource::String( ids );
+					else
+						Window::User::Fail( ids );
 				}
 			}
 		}
@@ -809,7 +810,7 @@ namespace Nestopia
 
 							if
 							(
-								(mode.x < MIN_DIALOG_WIDTH || mode.y < MIN_DIALOG_HEIGHT) &&
+								(mode.x < Window::Video::MIN_DIALOG_WIDTH || mode.y < Window::Video::MIN_DIALOG_HEIGHT) &&
 								(mode.x < int(info.x) || mode.y < int(info.y))
 							)
 								SwitchFullscreen( dialog->GetDialogMode() );
@@ -1017,13 +1018,7 @@ namespace Nestopia
 
 				case Emulator::EVENT_POWER_OFF:
 
-					menu[IDM_FILE_SAVE_SCREENSHOT].Enable
-					(
-						event == Emulator::EVENT_POWER_ON &&
-						emulator.NetPlayers() == 0 &&
-						emulator.IsGame()
-					);
-
+					menu[IDM_FILE_SAVE_SCREENSHOT].Enable( event == Emulator::EVENT_POWER_ON && emulator.IsGame() );
 					window.Redraw();
 					break;
 

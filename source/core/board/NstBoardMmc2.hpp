@@ -49,13 +49,8 @@ namespace Nes
 				void SubSave(State::Saver&) const;
 				void SubLoad(State::Loader&,dword);
 
-				template<uint ADDRESS>
-				NST_FORCE_INLINE uint FetchChr(uint);
-
 				NES_DECL_POKE( B000 );
-
-				NES_DECL_ACCESSOR( Chr_0000 );
-				NES_DECL_ACCESSOR( Chr_1000 );
+				NES_DECL_ACCESSOR( Chr );
 
 				uint selector[2];
 				byte banks[4];

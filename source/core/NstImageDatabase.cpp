@@ -823,13 +823,15 @@ namespace Nes
 					(
 						this->system == Profile::System::NES_PAL   ||
 						this->system == Profile::System::NES_PAL_A ||
-						this->system == Profile::System::NES_PAL_B
+						this->system == Profile::System::NES_PAL_B ||
+						this->system == Profile::System::DENDY
 					)
 						!=
 					(
 						item->system == Profile::System::NES_PAL   ||
 						item->system == Profile::System::NES_PAL_A ||
-						item->system == Profile::System::NES_PAL_B
+						item->system == Profile::System::NES_PAL_B ||
+						item->system == Profile::System::DENDY
 					)
 				);
 
@@ -1047,6 +1049,13 @@ namespace Nes
 							case Profile::System::FAMICOM:
 
 								if (favoredSystem == FAVORED_FAMICOM)
+									return it;
+
+								break;
+
+							case Profile::System::DENDY:
+
+								if (favoredSystem == FAVORED_DENDY)
 									return it;
 
 								break;
@@ -1292,6 +1301,12 @@ namespace Nes
 										system = Profile::System::NES_PAL_B;
 										cpu = Profile::System::CPU_RP2A07;
 										ppu = Profile::System::PPU_RP2C07;
+									}
+									else if (attribute.IsValue( L"dendy" ))
+									{
+										system = Profile::System::DENDY;
+										cpu = Profile::System::CPU_DENDY;
+										ppu = Profile::System::PPU_DENDY;
 									}
 									else if (strict)
 									{

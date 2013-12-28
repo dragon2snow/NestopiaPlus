@@ -255,7 +255,8 @@ namespace Nes
 				MAX_VOLUME = 100,
 				DEFAULT_SPEED = 0,
 				MIN_SPEED = 30,
-				MAX_SPEED = 240
+				MAX_SPEED = 240,
+				MAX_CHANNELS = 11
 			};
 
 			/**
@@ -303,13 +304,13 @@ namespace Nes
 			Speaker GetSpeaker() const throw();
 
 			/**
-			* Sets a channel volume.
+			* Sets one or more channel volumes.
 			*
-			* @param channel channel
+			* @param channels OR:ed channels
 			* @param volume volume in the range 0 to 100, default is 85
 			* @return result code
 			*/
-			Result SetVolume(uint channel,uint volume) throw();
+			Result SetVolume(uint channels,uint volume) throw();
 
 			/**
 			* Returns the volume of a channel.
@@ -318,6 +319,20 @@ namespace Nes
 			* @return volume
 			*/
 			uint GetVolume(uint channel) const throw();
+
+			/**
+			* Mutes all sound.
+			*
+			* @param mute true to mute sound
+			*/
+			void Mute(bool mute) throw();
+
+			/**
+			* Checks if sound is muted.
+			*
+			* @return true if muted
+			*/
+			bool IsMuted() const throw();
 
 			/**
 			* Sets the speed.

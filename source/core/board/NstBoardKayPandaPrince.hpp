@@ -53,9 +53,10 @@ namespace Nes
 					void NST_FASTCALL UpdatePrg(uint,uint);
 
 					NES_DECL_PEEK( 5000 );
+					NES_DECL_POKE( 5000 );
 					NES_DECL_POKE( 8000 );
 
-					uint exMode;
+					uint exRegs[3];
 				};
 			}
 		}

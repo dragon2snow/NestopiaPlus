@@ -64,7 +64,7 @@ namespace Nes
 					};
 
 					const uint prgLowerOffset;
-					ClockUnits::M2<Irq> irq;
+					Timer::M2<Irq> irq;
 				};
 			}
 		}

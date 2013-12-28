@@ -34,8 +34,8 @@ namespace Nestopia
 	{
 		ImageDatabase::ImageDatabase(Emulator& e,const Configuration& cfg,Window::Menu& m,const Paths& paths)
 		:
-		Manager  ( e, m ),
-		dialog   ( new Window::ImageDatabase(e,cfg,paths) )
+		Manager ( e, m, this, &ImageDatabase::OnEmuEvent ),
+		dialog  ( new Window::ImageDatabase(e,cfg,paths) )
 		{
 			menu.Commands().Add( IDM_OPTIONS_IMAGEDATABASE, this, &ImageDatabase::OnCmdImagedatabase );
 		}
@@ -52,6 +52,17 @@ namespace Nestopia
 		void ImageDatabase::OnCmdImagedatabase(uint)
 		{
 			dialog->Open();
+		}
+
+		void ImageDatabase::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
+		{
+			switch (event)
+			{
+				case Emulator::EVENT_NETPLAY_MODE:
+
+					menu[IDM_OPTIONS_IMAGEDATABASE].Enable( !data );
+					break;
+			}
 		}
 	}
 }

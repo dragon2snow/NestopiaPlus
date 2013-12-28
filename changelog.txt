@@ -1,10 +1,56 @@
 ----------------------------------------------------------------
+1.40
+----------------------------------------------------------------
+
+Shell:
+
+ Additions:
+ 
+  - New cheat dialog features and improvements.
+  - Automatic cheat load/save support in Paths dialog.
+  - Option to mute sound when running in alt. speed mode.
+
+ Changes:
+ 
+  - Icon improvements by Pongbashi. 
+  - Default fullscreen resolution depending on monitor's aspect ratio.
+  - Refactoring.
+
+ Fixes:
+ 
+  - Various minor things.
+
+Core:
+
+ Additions:
+ 
+  - Preliminary Dendy console support. Fixes Magistr (Subor) and
+    some other 'clone exclusives'. Info from Flamer and HardWareMan.
+  - DMC DMA read conflicts. Info from blargg and bunnyboy.
+  - Mapper 177, 179, 219 and 221. Info from CaH4e3.
+  - Database entries.
+ 
+ Changes:
+ 
+  - Better and more flexible PPU address line implementation at the
+    expense of some speed.
+  - Database entries.
+  - Refactoring.
+
+ Fixes:
+ 
+  - Wrong palette sometimes when switching to/from VS images.
+  - Wrong image information sometimes, e.g. battery when there isn't any.
+  - Save state NTSC/PAL mode saving.
+  - Minor save state inaccuacy fix with tape recording.
+
+----------------------------------------------------------------
 1.39
 ----------------------------------------------------------------
 
 Shell:
 
- Addition:
+ Additions:
 
   - "Don't show again" checkbox in DIP switches popup window.
   - Soft-patching status in image info dialog.
@@ -27,7 +73,7 @@ Shell:
   
 Core:
 
- Addition:
+ Additions:
  
   - Core API documentation in HTML through cppdoc.
   - UPS patching format support.

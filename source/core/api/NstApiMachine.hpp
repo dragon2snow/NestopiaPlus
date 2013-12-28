@@ -107,7 +107,11 @@ namespace Nes
 				/**
 				* Famicom.
 				*/
-				FAVORED_FAMICOM = Core::FAVORED_FAMICOM
+				FAVORED_FAMICOM = Core::FAVORED_FAMICOM,
+				/**
+				* Dendy (clone).
+				*/
+				FAVORED_DENDY = Core::FAVORED_DENDY
 			};
 
 			/**
@@ -272,7 +276,7 @@ namespace Nes
 			* @param mode new mode
 			* @return result code
 			*/
-			Result SetMode (Mode mode) throw();
+			Result SetMode(Mode mode) throw();
 
 			/**
 			* Internal compression on states.
@@ -295,7 +299,7 @@ namespace Nes
 			* @param stream input stream containing the state
 			* @return result code
 			*/
-			Result LoadState (std::istream& stream) throw();
+			Result LoadState(std::istream& stream) throw();
 
 			/**
 			* Saves a state.
@@ -304,7 +308,7 @@ namespace Nes
 			* @param compression to allow internal compression in the state, default is USE_COMPRESSION
 			* @return result code
 			*/
-			Result SaveState (std::ostream& stream,Compression compression=USE_COMPRESSION) const throw();
+			Result SaveState(std::ostream& stream,Compression compression=USE_COMPRESSION) const throw();
 
 			/**
 			* Returns a machine state.
@@ -312,7 +316,7 @@ namespace Nes
 			* @param flags OR:ed flags to check
 			* @return OR:ed flags evaluated to true
 			*/
-			uint Is (uint flags) const throw();
+			uint Is(uint flags) const throw();
 
 			/**
 			* Returns a machine state.
@@ -321,7 +325,7 @@ namespace Nes
 			* @param flags2 OR:ed flags to check
 			* @return true if <b>both</b> parameters has at least one flag evaluated to true
 			*/
-			bool Is (uint flags1,uint flags2) const throw();
+			bool Is(uint flags1,uint flags2) const throw();
 
 			/**
 			* Tells if the machine is in a locked state.

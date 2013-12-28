@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <cstring>
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 #include "NstBoard.hpp"
 #include "NstBoardBandai.hpp"
 

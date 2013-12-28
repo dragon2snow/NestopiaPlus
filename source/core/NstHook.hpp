@@ -35,7 +35,7 @@ namespace Nes
 	{
 	#ifdef NST_FASTDELEGATE
 
-		class Hook
+		class Hook : public ImplicitBool<Hook>
 		{
 			class Component {};
 			typedef void (Component::*Executor)();
@@ -63,6 +63,17 @@ namespace Nes
 				(*component.*executor)();
 			}
 
+			void Unset()
+			{
+				component = NULL;
+				executor = NULL;
+			}
+
+			bool operator ! () const
+			{
+				return !executor;
+			}
+
 			bool operator == (const Hook& h) const
 			{
 				return executor == h.executor && component == h.component;
@@ -76,7 +87,7 @@ namespace Nes
 
 	#else
 
-		class Hook
+		class Hook : public ImplicitBool<Hook>
 		{
 			typedef void* Component;
 			typedef void (NST_REGCALL *Executor)(Component);
@@ -97,6 +108,17 @@ namespace Nes
 			void Execute() const
 			{
 				executor( component );
+			}
+
+			void Unset()
+			{
+				component = NULL;
+				executor = NULL;
+			}
+
+			bool operator ! () const
+			{
+				return !executor;
 			}
 
 			bool operator == (const Hook& h) const

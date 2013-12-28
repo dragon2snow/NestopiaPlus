@@ -24,7 +24,7 @@
 
 #include <cstring>
 #include "NstBoard.hpp"
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 #include "NstBoardFfe.hpp"
 
 namespace Nes
@@ -49,7 +49,7 @@ namespace Nes
 			Ffe::Ffe(const Context& c)
 			:
 			Board   (c),
-			irq     (board == Type::CUSTOM_FFE3 ? NULL : new ClockUnits::M2<Irq>(*c.cpu,0xFFFF)),
+			irq     (board == Type::CUSTOM_FFE3 ? NULL : new Timer::M2<Irq>(*c.cpu,0xFFFF)),
 			trainer (c.trainer)
 			{
 			}

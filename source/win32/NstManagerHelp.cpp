@@ -75,6 +75,7 @@ namespace Nestopia
 			{
 				case Emulator::EVENT_NETPLAY_MODE:
 
+					menu[IDM_HELP_HELP].Enable( !data );
 					menu[IDM_HELP_ABOUT].Enable( !data );
 					menu[IDM_HELP_LICENSE].Enable( !data );
 					break;

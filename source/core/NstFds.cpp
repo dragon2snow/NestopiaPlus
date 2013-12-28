@@ -937,7 +937,7 @@ namespace Nes
 
 				return i >= 0 ? RESULT_OK : RESULT_WARN_BAD_DUMP;
 			}
-			catch (std::bad_alloc&)
+			catch (const std::bad_alloc&)
 			{
 				return RESULT_ERR_OUT_OF_MEMORY;
 			}
@@ -1201,11 +1201,11 @@ namespace Nes
 		#endif
 
 		Fds::Adapter::Adapter(Cpu& c,const Disks::Sides& s)
-		: ClockUnits::M2<Unit>(c,s) {}
+		: Timer::M2<Unit>(c,s) {}
 
 		void Fds::Adapter::Reset(Cpu& cpu,byte* const io,bool protect)
 		{
-			ClockUnits::M2<Unit>::Reset( true, true );
+			Timer::M2<Unit>::Reset( true, true );
 
 			unit.drive.Mount( io, protect );
 
@@ -1622,11 +1622,7 @@ namespace Nes
 
 		bool Fds::Sound::UpdateSettings()
 		{
-			envelopes.clock =
-			(
-				GetModel() == CPU_RP2A03 ? (CPU_RP2A03_CC * Envelopes::PULSE) :
-                                           (CPU_RP2A07_CC * Envelopes::PULSE)
-			);
+			envelopes.clock = GetCpuClock() * Envelopes::PULSE;
 
 			Cycle rate;
 			uint fixed;
@@ -1638,26 +1634,18 @@ namespace Nes
 			modulator.clock = dword(fixed) << 16;
 
 			wave.rate = GetSampleRate();
-
-			if (GetModel() == CPU_RP2A03)
-			{
-				wave.frame = CLK_NTSC;
-				wave.clock = 0x10000UL * CPU_RP2A03_CC * CLK_NTSC_DIV;
-			}
-			else
-			{
-				wave.frame = CLK_PAL;
-				wave.clock = 0x10000UL * CPU_RP2A07_CC * CLK_PAL_DIV;
-			}
+			wave.frame = GetCpuClockBase();
+			wave.clock = 0x10000UL * GetCpuClock() * GetCpuClockDivider();
 
 			amp = 0;
-			output = GetVolume(EXT_FDS) * 69 / DEFAULT_VOLUME;
+			uint volume = GetVolume(EXT_FDS) * 69 / DEFAULT_VOLUME;
+			output = IsMuted() ? 0 : volume;
 
 			dcBlocker.Reset();
 
 			active = CanOutput();
 
-			return output;
+			return volume;
 		}
 
 		void Fds::Sound::SaveState(State::Saver& state,const dword baseChunk) const

@@ -24,7 +24,7 @@
 
 #include <cstring>
 #include "NstBoard.hpp"
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 #include "../NstFile.hpp"
 #include "NstBoardNamcot163.hpp"
 
@@ -349,17 +349,14 @@ namespace Nes
 
 				bool N163::Sound::UpdateSettings()
 				{
-					output = GetVolume(EXT_N163) * 68U / DEFAULT_VOLUME;
+					uint volume = GetVolume(EXT_N163) * 68U / DEFAULT_VOLUME;
+					output = IsMuted() ? 0 : volume;
 
-					rate =
-					(
-						qword(GetModel() == CPU_RP2A03 ? CLK_NTSC : CLK_PAL) * (1UL << SPEED_SHIFT) /
-						(GetSampleRate() * 45UL * (GetModel() == CPU_RP2A03 ? CLK_NTSC_DIV : CLK_PAL_DIV))
-					);
+					rate = GetCpuClockBase() * qword(1UL << SPEED_SHIFT) / (GetSampleRate() * 45UL * GetCpuClockDivider());
 
 					dcBlocker.Reset();
 
-					return output;
+					return volume;
 				}
 
 				inline void N163::Sound::SetChannelState(uint data)

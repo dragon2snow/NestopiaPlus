@@ -65,7 +65,7 @@ namespace Nes
 						uint count;
 					};
 
-					ClockUnits::A12<Irq,Irq::CLOCK_FILTER> irq;
+					Timer::A12<Irq,Irq::CLOCK_FILTER> irq;
 				};
 			}
 		}

@@ -139,6 +139,8 @@ namespace Nestopia
 			bool FindFile(Path&) const;
 			bool LocateFile(Path&,File::Types) const;
 
+			Path GetCheatPath() const;
+			Path GetCheatPath(const Path&) const;
 			Path GetPatchPath(const Path&,File::Type) const;
 			Path GetSavePath(const Path&,File::Type) const;
 			Path GetScreenShotPath() const;
@@ -146,6 +148,8 @@ namespace Nestopia
 
 			bool SaveSlotExportingEnabled() const;
 			bool SaveSlotImportingEnabled() const;
+			bool AutoLoadCheatsEnabled() const;
+			bool AutoSaveCheatsEnabled() const;
 			bool UseStateCompression() const;
 			bool BypassPatchValidation() const;
 

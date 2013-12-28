@@ -69,7 +69,7 @@ namespace Nes
 						uint count;
 					};
 
-					ClockUnits::M2<Irq> irq;
+					Timer::M2<Irq> irq;
 				};
 			}
 		}

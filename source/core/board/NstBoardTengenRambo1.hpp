@@ -29,7 +29,7 @@
 #pragma once
 #endif
 
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 
 namespace Nes
 {
@@ -100,8 +100,8 @@ namespace Nes
 							ibool enabled;
 						};
 
-						typedef ClockUnits::A12<Unit&,A12_FILTER,IRQ_DELAY> A12;
-						typedef ClockUnits::M2<Unit&,M2_CLOCK> M2;
+						typedef Timer::A12<Unit&,A12_FILTER,IRQ_DELAY> A12;
+						typedef Timer::M2<Unit&,M2_CLOCK> M2;
 
 						Unit unit;
 						A12 a12;

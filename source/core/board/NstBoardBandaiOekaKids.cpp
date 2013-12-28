@@ -39,17 +39,9 @@ namespace Nes
 
 				void OekaKids::SubReset(const bool hard)
 				{
-					nmt.SetAccessor( 0, 0, this, &OekaKids::Access_2000 );
-					nmt.SetAccessor( 1, 0, this, &OekaKids::Access_2400 );
-					nmt.SetAccessor( 2, 0, this, &OekaKids::Access_2800 );
-					nmt.SetAccessor( 3, 0, this, &OekaKids::Access_2C00 );
+					ppu.SetAddressLineHook( Core::Io::Line(this,&OekaKids::Line_Nmt) );
 
 					Map( 0x8000U, 0xFFFFU, &OekaKids::Poke_8000 );
-
-					p2006 = cpu.Map( 0x2006 );
-
-					for (uint i=0x2006; i < 0x4000; i += 0x8)
-						cpu.Map( i ).Set( this, &OekaKids::Peek_2006, &OekaKids::Poke_2006 );
 
 					if (hard)
 						NES_DO_POKE(8000,0x8000,0x00);
@@ -59,48 +51,10 @@ namespace Nes
 				#pragma optimize("", on)
 				#endif
 
-				void OekaKids::UpdateLatch(const uint bank) const
+				NES_LINE(OekaKids,Nmt)
 				{
-					chr.SwapBank<SIZE_4K,0x0000>( (chr.GetBank<SIZE_4K,0x0000>() & 0x4) | (bank >> 8) );
-				}
-
-				NES_ACCESSOR(OekaKids,2000)
-				{
-					UpdateLatch( address );
-					return nmt[0][address];
-				}
-
-				NES_ACCESSOR(OekaKids,2400)
-				{
-					UpdateLatch( address );
-					return nmt[1][address];
-				}
-
-				NES_ACCESSOR(OekaKids,2800)
-				{
-					UpdateLatch( address );
-					return nmt[2][address];
-				}
-
-				NES_ACCESSOR(OekaKids,2C00)
-				{
-					UpdateLatch( address );
-					return nmt[3][address];
-				}
-
-				NES_PEEK_A(OekaKids,2006)
-				{
-					return p2006.Peek( address );
-				}
-
-				NES_POKE_D(OekaKids,2006)
-				{
-					p2006.Poke( 0x2006, data );
-
-					const uint address = ppu.GetVRamAddress();
-
-					if ((address & 0x3000) == 0x2000)
-						UpdateLatch( address & 0x0300 );
+					if (address >= 0x2000 && (address & 0x3FF) < 0x3C0)
+						chr.SwapBank<SIZE_4K,0x0000>( (chr.GetBank<SIZE_4K,0x0000>() & 0x4) | (address >> 8 & 0x3) );
 				}
 
 				NES_POKE_AD(OekaKids,8000)

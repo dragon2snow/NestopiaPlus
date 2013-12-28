@@ -94,7 +94,7 @@ namespace Nes
 					TIME_TEXT_SEC_OFFSET = 13
 				};
 
-				ClockUnits::M2<Irq> irq;
+				Timer::M2<Irq> irq;
 				dword time;
 				CartSwitches cartSwitches;
 				char text[16];

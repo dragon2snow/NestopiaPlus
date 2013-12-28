@@ -54,6 +54,12 @@ namespace Nes
 			void BeginFrame(bool);
 			void EndFrame();
 
+			enum
+			{
+				SCANLINE_HDUMMY = -1,
+				SCANLINE_VBLANK = 240
+			};
+
 			enum NmtMirroring
 			{
 				NMT_H = 0xC,
@@ -65,10 +71,10 @@ namespace Nes
 			void SetModel(PpuModel,bool);
 			void SetMirroring(NmtMirroring);
 			void SetMirroring(const byte (&)[4]);
+			uint SetAddressLineHook(const Core::Io::Line&);
 			void SetHActiveHook(const Hook&);
 			void SetHBlankHook(const Hook&);
 			uint GetPixelCycles() const;
-
 			void EnableCpuSynchronization();
 
 			void LoadState(State::Loader&);
@@ -80,25 +86,16 @@ namespace Nes
 
 			protected:
 
-				Io::Accessor accessors[2];
+				Io::Accessor accessor;
 
 			public:
 
-				void ResetAccessors();
-				void SetDefaultAccessor(uint);
+				void ResetAccessor();
 
 				template<typename T,typename U>
-				void SetAccessor(uint i,T t,U u)
+				void SetAccessor(T t,U u)
 				{
-					NST_ASSERT( i < 2 );
-					accessors[i].Set( t, u );
-				}
-
-				template<typename T,typename U,typename V>
-				void SetAccessors(T t,U u,V v)
-				{
-					accessors[0].Set( t, u );
-					accessors[1].Set( t, v );
+					accessor.Set( t, u );
 				}
 			};
 
@@ -111,40 +108,19 @@ namespace Nes
 
 			protected:
 
-				Io::Accessor accessors[4][2];
+				Io::Accessor accessors[4];
 
 			public:
 
 				void ResetAccessors();
-				void SetDefaultAccessors(uint);
-				void SetDefaultAccessor(uint,uint);
-
-				template<typename T,typename U>
-				void SetAccessor(uint i,uint j,T t,U u)
-				{
-					NST_ASSERT( i < 4 && j < 2 );
-					accessors[i][j].Set( t, u );
-				}
-
-				template<typename T,typename U>
-				void SetAccessors(uint i,T t,U u)
-				{
-					NST_ASSERT( i < 4 );
-					accessors[i][0].Set( t, u[0] );
-					accessors[i][1].Set( t, u[1] );
-				}
 
 				template<typename T,typename U,typename V,typename W,typename X>
 				void SetAccessors(T t,U u,V v,W w,X x)
 				{
-					accessors[0][0].Set( t, u[0] );
-					accessors[0][1].Set( t, u[1] );
-					accessors[1][0].Set( t, v[0] );
-					accessors[1][1].Set( t, v[1] );
-					accessors[2][0].Set( t, w[0] );
-					accessors[2][1].Set( t, w[1] );
-					accessors[3][0].Set( t, x[0] );
-					accessors[3][1].Set( t, x[1] );
+					accessors[0].Set( t, u );
+					accessors[1].Set( t, v );
+					accessors[2].Set( t, w );
+					accessors[3].Set( t, x );
 				}
 			};
 
@@ -159,12 +135,6 @@ namespace Nes
 			{
 				NST_FORCE_INLINE uint FetchName(uint) const;
 				NST_FORCE_INLINE uint FetchAttribute(uint) const;
-			};
-
-			enum
-			{
-				SCANLINE_HDUMMY = -1,
-				SCANLINE_VBLANK = 255
 			};
 
 			enum
@@ -196,18 +166,25 @@ namespace Nes
 			NES_DECL_POKE( 4014 );
 
 			NES_DECL_HOOK( Sync );
-			NES_DECL_HOOK( Nop  );
 
-			inline Cycle GetCycles() const;
-			inline Cycle GetLocalCycles(Cycle) const;
+			NST_FORCE_INLINE Cycle GetCycles() const;
+			NST_FORCE_INLINE Cycle GetLocalCycles(Cycle) const;
 
-			inline bool IsDead() const;
-			inline void UpdateScrollAddress(uint);
-			inline uint Coloring() const;
-			inline uint Emphasis() const;
+			NST_FORCE_INLINE bool IsDead() const;
+			NST_FORCE_INLINE uint Coloring() const;
+			NST_FORCE_INLINE uint Emphasis() const;
 
-			NST_FORCE_INLINE uint FetchName() const;
-			NST_FORCE_INLINE uint FetchAttribute() const;
+			NST_FORCE_INLINE void UpdateAddressLine(uint);
+			NST_FORCE_INLINE void UpdateScrollAddressLine();
+
+			NST_FORCE_INLINE void OpenName();
+			NST_FORCE_INLINE void FetchName();
+			NST_FORCE_INLINE void OpenAttribute();
+			NST_FORCE_INLINE void FetchAttribute();
+			NST_FORCE_INLINE void OpenPattern(uint);
+			NST_FORCE_INLINE uint FetchSpPattern() const;
+			NST_FORCE_INLINE void FetchBgPattern0();
+			NST_FORCE_INLINE void FetchBgPattern1();
 
 			NST_FORCE_INLINE void EvaluateSpritesEven();
 			NST_FORCE_INLINE void EvaluateSpritesOdd();
@@ -224,11 +201,14 @@ namespace Nes
 			void EvaluateSpritesPhase9();
 
 			void Reset(bool,bool,bool);
-			void Update(Cycle);
+			void Update(Cycle,uint=0);
 			void UpdateStates();
 			void UpdatePalette();
-			void LoadSprite(const byte* NST_RESTRICT,uint=0x1000);
+			void LoadExtendedSprites();
 
+			NST_FORCE_INLINE uint OpenSprite() const;
+			NST_FORCE_INLINE uint OpenSprite(const byte* NST_RESTRICT) const;
+			NST_FORCE_INLINE  void LoadSprite(uint,uint,const byte* NST_RESTRICT);
 			NST_SINGLE_CALL void PreLoadTiles();
 			NST_SINGLE_CALL void LoadTiles();
 			NST_FORCE_INLINE void RenderPixel();
@@ -264,8 +244,7 @@ namespace Nes
 					FRAME_ODD                = CTRL1_BG_ENABLED|CTRL1_SP_ENABLED
 				};
 
-				uint ctrl0;
-				uint ctrl1;
+				uint ctrl[2];
 				uint status;
 				uint frame;
 				uint oam;
@@ -292,9 +271,7 @@ namespace Nes
 				uint address;
 				uint toggle;
 				uint latch;
-				uint increase;
 				uint xFine;
-				uint pattern;
 			};
 
 			struct Tiles
@@ -414,7 +391,7 @@ namespace Nes
 				uint pattern;
 				uint latch;
 				uint buffer;
-				Core::Io::Line a12;
+				Core::Io::Line line;
 			};
 
 			Cpu& cpu;
@@ -463,12 +440,7 @@ namespace Nes
 
 			ibool IsEnabled() const
 			{
-				return regs.ctrl1 & Regs::CTRL1_BG_SP_ENABLED;
-			}
-
-			bool IsActive() const
-			{
-				return (regs.ctrl1 & Regs::CTRL1_BG_SP_ENABLED) && scanline < Video::Screen::HEIGHT;
+				return regs.ctrl[1] & Regs::CTRL1_BG_SP_ENABLED;
 			}
 
 			int GetScanline() const
@@ -476,19 +448,10 @@ namespace Nes
 				return scanline;
 			}
 
-			uint GetCtrl0(uint flags) const
+			uint GetCtrl(uint i) const
 			{
-				return regs.ctrl0 & flags;
-			}
-
-			uint GetCtrl1(uint flags) const
-			{
-				return regs.ctrl1 & flags;
-			}
-
-			Core::Io::Line& A12()
-			{
-				return io.a12;
+				NST_ASSERT( i < 2 );
+				return regs.ctrl[i];
 			}
 
 			Video::Screen& GetScreen()
@@ -540,14 +503,24 @@ namespace Nes
 				return cycles.one * count;
 			}
 
-			uint GetVRamAddress() const
+			Cycle GetHSyncClock() const
 			{
-				return scroll.address;
+				return model == PPU_RP2C07 ? PPU_RP2C07_HSYNC : model == PPU_DENDY ? PPU_DENDY_HSYNC : PPU_RP2C02_HSYNC;
+			}
+
+			Cycle GetHVIntClock() const
+			{
+				return model == PPU_RP2C07 ? PPU_RP2C07_HVINT : model == PPU_DENDY ? PPU_DENDY_HVINT : PPU_RP2C02_HVINT;
+			}
+
+			const Core::Io::Line& GetAddressLineHook() const
+			{
+				return io.line;
 			}
 
 			bool IsShortFrame() const
 			{
-				return regs.ctrl1 & regs.frame;
+				return regs.ctrl[1] & regs.frame;
 			}
 
 			uint GetBurstPhase() const

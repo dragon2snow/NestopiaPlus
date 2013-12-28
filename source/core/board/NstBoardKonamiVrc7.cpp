@@ -25,7 +25,7 @@
 #include <cstring>
 #include <cmath>
 #include "NstBoard.hpp"
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 #include "../NstFpuPrecision.hpp"
 #include "NstBoardKonamiVrc4.hpp"
 #include "NstBoardKonamiVrc7.hpp"
@@ -327,11 +327,12 @@ namespace Nes
 
 				bool Vrc7::Sound::UpdateSettings()
 				{
-					output = GetVolume(EXT_VRC7);
+					uint volume = GetVolume(EXT_VRC7);
+					output = IsMuted() ? 0 : volume;
 
 					Refresh();
 
-					return output;
+					return volume;
 				}
 
 				void Vrc7::SubLoad(State::Loader& state,const dword baseChunk)

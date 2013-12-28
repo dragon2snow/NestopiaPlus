@@ -25,7 +25,7 @@
 #include <cstdio>
 #include <algorithm>
 #include "../NstLog.hpp"
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 #include "NstBoard.hpp"
 #include "NstBoardNRom.hpp"
 #include "NstBoardAxRom.hpp"
@@ -63,6 +63,7 @@
 #include "NstBoardFutureMedia.hpp"
 #include "NstBoardGouder.hpp"
 #include "NstBoardHes.hpp"
+#include "NstBoardHenggedianzi.hpp"
 #include "NstBoardHosenkan.hpp"
 #include "NstBoardIrem.hpp"
 #include "NstBoardJaleco.hpp"
@@ -92,6 +93,8 @@
 #include "NstBoardWaixing.hpp"
 #include "NstBoardWhirlwind.hpp"
 #include "NstBoardBenshengBs5.hpp"
+#include "NstBoardUnlN625092.hpp"
+#include "NstBoardUnlA9746.hpp"
 #include "NstBoardUnlCc21.hpp"
 #include "NstBoardUnlEdu2000.hpp"
 #include "NstBoardUnlKingOfFighters96.hpp"
@@ -236,6 +239,11 @@ namespace Nes
 					case NMT_4: nmt = NMT_FOURSCREEN; break;
 					default:    nmt = (n == NMT_CONTROLLED ? NMT_VERTICAL : n); break;
 				}
+			}
+
+			uint Board::Type::GetMapper() const
+			{
+				return dword(id) >> 24;
 			}
 
 			dword Board::Type::GetMaxPrg() const
@@ -1070,12 +1078,14 @@ namespace Nes
 					{ "UNL-22211",                   Type::TXC_22211A               },
 					{ "UNL-603-5052",                Type::BTL_6035052              },
 					{ "UNL-8237",                    Type::SUPERGAME_POCAHONTAS2    },
+					{ "UNL-A9746",                   Type::UNL_A9746                },
 					{ "UNL-AX5705",                  Type::BTL_AX5705               },
 					{ "UNL-CC-21",                   Type::UNL_CC21                 },
 					{ "UNL-EDU2000",                 Type::UNL_EDU2000              },
 					{ "UNL-H2288",                   Type::KAY_H2288                },
 					{ "UNL-KOF97",                   Type::UNL_KINGOFFIGHTERS97     },
 					{ "UNL-KS7032",                  Type::KAISER_KS7032            },
+					{ "UNL-N625092",                 Type::UNL_N625092              },
 					{ "UNL-SA-0036",                 Type::SACHEN_SA0036            },
 					{ "UNL-SA-0037",                 Type::SACHEN_SA0037            },
 					{ "UNL-SA-016-1M",               Type::SACHEN_SA0161M           },
@@ -1270,12 +1280,12 @@ namespace Nes
 								id = Type::STD_SBROM;
 							}
 						}
-						else if (prg == SIZE_64K && chr >= SIZE_128K && !wram)
+						else if (prg == SIZE_64K && chr >= SIZE_128K && !wram && !useWramAuto)
 						{
 							name = "SCROM";
 							id = Type::STD_SCROM;
 						}
-						else if (prg == SIZE_32K && (chr == SIZE_16K || chr == SIZE_32K || chr == SIZE_64K) && !wram)
+						else if (prg == SIZE_32K && (chr == SIZE_16K || chr == SIZE_32K || chr == SIZE_64K) && !wram && !useWramAuto)
 						{
 							name = "SEROM";
 							id = Type::STD_SEROM;
@@ -1313,7 +1323,7 @@ namespace Nes
 								id = Type::STD_SGROM;
 							}
 						}
-						else if (prg == SIZE_32K && chr == SIZE_128K && !wram)
+						else if (prg == SIZE_32K && chr == SIZE_128K && !wram && !useWramAuto)
 						{
 							name = "SHROM";
 							id = Type::STD_SHROM;
@@ -1332,7 +1342,7 @@ namespace Nes
 								id = Type::STD_SLROM;
 							}
 						}
-						else if ((prg == SIZE_64K || prg == SIZE_128K || prg == SIZE_256K) && chr == SIZE_128K && !wram)
+						else if ((prg == SIZE_64K || prg == SIZE_128K || prg == SIZE_256K) && chr == SIZE_128K && !wram && !useWramAuto)
 						{
 							name = "SL1ROM";
 							id = Type::STD_SLROM;
@@ -1351,10 +1361,15 @@ namespace Nes
 						{
 							name = "SxROM (non-standard)";
 
-							if (wram)
+							if (wram || useWramAuto)
+							{
+								wramAuto = useWramAuto;
 								id = Type::STD_SKROM;
+							}
 							else
+							{
 								id = Type::STD_SLROM;
+							}
 						}
 						break;
 
@@ -1408,12 +1423,12 @@ namespace Nes
 
 						if (nmt == Type::NMT_FOURSCREEN)
 						{
-							if (prg == SIZE_64K && (chr == SIZE_32K || chr == SIZE_64K))
+							if (prg == SIZE_64K && (chr == SIZE_32K || chr == SIZE_64K) && !wram && !useWramAuto)
 							{
 								name = "TVROM";
 								id = Type::STD_TVROM;
 							}
-							else if ((prg == SIZE_128K || prg == SIZE_256K || prg >= SIZE_512K) && chr == SIZE_64K)
+							else if ((prg == SIZE_128K || prg == SIZE_256K || prg >= SIZE_512K) && chr == SIZE_64K && !wram && !useWramAuto)
 							{
 								name = "TR1ROM";
 								id = Type::STD_TR1ROM;
@@ -1421,22 +1436,23 @@ namespace Nes
 							else
 							{
 								name = "TxROM (non-standard)";
+								wramAuto = useWramAuto;
 								id = Type::UNL_TRXROM;
 							}
 						}
 						else
 						{
-							if (prg == SIZE_32K && (chr == SIZE_32K || chr == SIZE_64K) && !wram)
+							if (prg == SIZE_32K && (chr == SIZE_32K || chr == SIZE_64K) && !wram && !useWramAuto)
 							{
 								name = "TEROM";
 								id = Type::STD_TEROM;
 							}
-							else if (prg == SIZE_64K && (chr == SIZE_32K || chr == SIZE_64K))
+							else if (prg == SIZE_64K && (chr == SIZE_32K || chr == SIZE_64K) && !wram && !useWramAuto)
 							{
 								name = "TBROM";
 								id = Type::STD_TBROM;
 							}
-							else if ((prg == SIZE_128K || prg == SIZE_256K || prg >= SIZE_512K) && (chr == SIZE_32K || chr == SIZE_64K) && !wram)
+							else if ((prg == SIZE_128K || prg == SIZE_256K || prg >= SIZE_512K) && (chr == SIZE_32K || chr == SIZE_64K) && !wram && !useWramAuto)
 							{
 								name = "TFROM";
 								id = Type::STD_TFROM;
@@ -1482,10 +1498,15 @@ namespace Nes
 							{
 								name = "TxROM (non-standard)";
 
-								if (wram)
+								if (wram || useWramAuto)
+								{
+									wramAuto = useWramAuto;
 									id = Type::STD_TKROM;
+								}
 								else
+								{
 									id = Type::STD_TLROM;
+								}
 							}
 						}
 						break;
@@ -2693,10 +2714,22 @@ namespace Nes
 						id = Type::UNL_XZY;
 						break;
 
+					case 177:
+
+						name = "HENGGEDIANZI";
+						id = Type::HENGEDIANZI_STD;
+						break;
+
 					case 178:
 
 						name = "WAIXING SAN GUO ZHONG LIE ZHUAN";
 						id = Type::WAIXING_SGZLZ;
+						break;
+
+					case 179:
+
+						name = "HENGGEDIANZI XING HE ZHAN SHI";
+						id = Type::HENGEDIANZI_XJZB;
 						break;
 
 					case 180:
@@ -2928,6 +2961,18 @@ namespace Nes
 
 						name = "BMC SPC009";
 						id = Type::BMC_GOLDENCARD_6IN1;
+						break;
+
+					case 219:
+
+						name = "UNL A9746";
+						id = Type::UNL_A9746;
+						break;
+
+					case 221:
+
+						name = "UNL N625092";
+						id = Type::UNL_N625092;
 						break;
 
 					case 222:
@@ -3331,6 +3376,8 @@ namespace Nes
 					case Type::GOUDER_37017               : return new Gouder::G37017(c);
 					case Type::HES_STD                    : return new Hes::Standard(c);
 					case Type::BENSHENG_BS5               : return new Bensheng::Bs5(c);
+					case Type::HENGEDIANZI_STD            : return new Hengedianzi::Standard(c);
+					case Type::HENGEDIANZI_XJZB           : return new Hengedianzi::Xjzb(c);
 					case Type::HOSENKAN_STD               : return new Hosenkan::Standard(c);
 					case Type::IREM_G101A_0               :
 					case Type::IREM_G101A_1               :
@@ -3478,11 +3525,13 @@ namespace Nes
 					case Type::TXC_MXMDHTWO               : return new Txc::Mxmdhtwo(c);
 					case Type::TXC_POLICEMAN              : return new Txc::Policeman(c);
 					case Type::TXC_TW                     : return new Txc::Tw(c);
+					case Type::UNL_A9746                  : return new Unlicensed::A9746(c);
 					case Type::UNL_CC21                   : return new Unlicensed::Cc21(c);
 					case Type::UNL_EDU2000                : return new Unlicensed::Edu2000(c);
 					case Type::UNL_KINGOFFIGHTERS96       : return new Unlicensed::KingOfFighters96(c);
 					case Type::UNL_KINGOFFIGHTERS97       : return new Unlicensed::KingOfFighters97(c);
 					case Type::UNL_MORTALKOMBAT2          : return new Unlicensed::MortalKombat2(c);
+					case Type::UNL_N625092                : return new Unlicensed::N625092(c);
 					case Type::UNL_SUPERFIGHTER3          : return new Unlicensed::SuperFighter3(c);
 					case Type::UNL_TF1201                 : return new Unlicensed::Tf1201(c);
 					case Type::UNL_WORLDHERO              : return new Unlicensed::WorldHero(c);

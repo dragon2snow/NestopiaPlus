@@ -51,8 +51,12 @@ namespace Nestopia
 
 			void OnCmdOptions(uint);
 			void OnEmuEvent(Emulator::Event,Emulator::Data);
-			void UpdateCodes() const;
+			void Load() const;
+			void Update() const;
+			void Flush() const;
 
+			const Paths& paths;
+			bool game;
 			Object::Heap<Window::Cheats> dialog;
 		};
 	}

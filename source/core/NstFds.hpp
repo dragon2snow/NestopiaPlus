@@ -26,7 +26,7 @@
 #define NST_FDS_H
 
 #include "NstImage.hpp"
-#include "NstClock.hpp"
+#include "NstTimer.hpp"
 #include "NstFile.hpp"
 #include "NstChecksum.hpp"
 #include "api/NstApiFds.hpp"
@@ -420,7 +420,7 @@ namespace Nes
 				uint status;
 			};
 
-			class Adapter : ClockUnits::M2<Unit>
+			class Adapter : Timer::M2<Unit>
 			{
 				NES_DECL_PEEK( Nop  );
 				NES_DECL_POKE( Nop  );
@@ -446,7 +446,7 @@ namespace Nes
 				NST_SINGLE_CALL void WriteProtect();
 				NST_SINGLE_CALL uint Activity() const;
 
-				using ClockUnits::M2<Unit>::VSync;
+				using Timer::M2<Unit>::VSync;
 			};
 
 			struct Io

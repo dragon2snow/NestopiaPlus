@@ -35,29 +35,30 @@ namespace Nes
 	{
 		namespace Input
 		{
-			#ifdef NST_MSVC_OPTIMIZE
-			#pragma optimize("s", on)
-			#endif
-
 			class FamilyKeyboard::DataRecorder
 			{
 			public:
 
-				Result Stop();
-				void   EndFrame();
-				void   SaveState(State::Saver&,dword) const;
-				void   LoadState(State::Loader&);
+				explicit DataRecorder(Cpu&);
+				~DataRecorder();
+
+				Result Record();
+				Result Play();
+
+				void SaveState(State::Saver&,dword) const;
+				void LoadState(State::Loader&);
 
 			private:
 
-				void Start();
+				NST_NO_INLINE void Start();
+				NST_NO_INLINE Result Stop(bool);
 
 				NES_DECL_HOOK( Tape );
 
 				enum
 				{
 					MAX_LENGTH = SIZE_4096K,
-					CLOCK = 32000
+					TAPE_CLOCK = 32000
 				};
 
 				enum Status
@@ -67,8 +68,10 @@ namespace Nes
 					RECORDING
 				};
 
+				qword cycles;
 				Cpu& cpu;
-				Cycle cycles;
+				dword multiplier;
+				dword clock;
 				Status status;
 				Vector<byte> stream;
 				dword pos;
@@ -76,31 +79,7 @@ namespace Nes
 				uint out;
 				File file;
 
-				static const dword clocks[2][2];
-
 			public:
-
-				DataRecorder(Cpu& c)
-				: cpu(c), cycles(Cpu::CYCLE_MAX), status(STOPPED), pos(0), in(0), out(0)
-				{
-					NST_COMPILE_ASSERT( CPU_RP2A03 == 0 && CPU_RP2A07 == 1 );
-					file.Load( File::TAPE, stream, MAX_LENGTH );
-				}
-
-				~DataRecorder()
-				{
-					Stop();
-					cpu.RemoveHook( Hook(this,&DataRecorder::Hook_Tape) );
-
-					if (stream.Size())
-						file.Save( File::TAPE, stream.Begin(), stream.Size() );
-				}
-
-				void Reset()
-				{
-					Stop();
-					cycles = Cpu::CYCLE_MAX;
-				}
 
 				bool IsStopped() const
 				{
@@ -122,42 +101,15 @@ namespace Nes
 					return stream.Size();
 				}
 
-				Result Record()
+				Result Stop()
 				{
-					if (status == RECORDING)
-						return RESULT_NOP;
-
-					if (status == PLAYING)
-						return RESULT_ERR_NOT_READY;
-
-					status = RECORDING;
-					in = 0;
-					out = 0;
-					cycles = 0;
-					stream.Destroy();
-
-					Start();
-
-					return RESULT_OK;
+					return Stop( false );
 				}
 
-				Result Play()
+				void Reset()
 				{
-					if (status == PLAYING)
-						return RESULT_NOP;
-
-					if (status == RECORDING || !Playable())
-						return RESULT_ERR_NOT_READY;
-
-					status = PLAYING;
-					pos = 0;
-					in = 0;
-					out = 0;
-					cycles = 0;
-
-					Start();
-
-					return RESULT_OK;
+					clock = 0;
+					Stop( false );
 				}
 
 				void Poke(uint data)
@@ -169,13 +121,33 @@ namespace Nes
 				{
 					return in;
 				}
+
+				NST_SINGLE_CALL void EndFrame()
+				{
+					if (!clock)
+						return;
+
+					if (multiplier)
+					{
+						const qword frame = qword(cpu.GetFrameCycles()) * multiplier;
+						NST_VERIFY( cycles >= frame );
+
+						if (cycles > frame)
+							cycles -= frame;
+						else
+							cycles = 0;
+					}
+					else
+					{
+						clock = 0;
+						cpu.RemoveHook( Hook(this,&DataRecorder::Hook_Tape) );
+					}
+				}
 			};
 
-			const dword FamilyKeyboard::DataRecorder::clocks[2][2] =
-			{
-				{ CLK_NTSC_DIV * 16, CLK_NTSC * (16UL/1) / (CLOCK/1)   },
-				{ CLK_PAL_DIV * 320, CLK_PAL * (320UL/16) / (CLOCK/16) }
-			};
+			#ifdef NST_MSVC_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
 
 			FamilyKeyboard::FamilyKeyboard(Cpu& c,bool connectDataRecorder)
 			:
@@ -185,9 +157,23 @@ namespace Nes
 				FamilyKeyboard::Reset();
 			}
 
+			FamilyKeyboard::DataRecorder::DataRecorder(Cpu& c)
+			: cycles(0), cpu(c), multiplier(0), clock(0), status(STOPPED), pos(0), in(0), out(0)
+			{
+				file.Load( File::TAPE, stream, MAX_LENGTH );
+			}
+
 			FamilyKeyboard::~FamilyKeyboard()
 			{
 				delete dataRecorder;
+			}
+
+			FamilyKeyboard::DataRecorder::~DataRecorder()
+			{
+				Stop( true );
+
+				if (stream.Size())
+					file.Save( File::TAPE, stream.Begin(), stream.Size() );
 			}
 
 			void FamilyKeyboard::Reset()
@@ -212,41 +198,21 @@ namespace Nes
 
 			void FamilyKeyboard::DataRecorder::SaveState(State::Saver& state,const dword baseChunk) const
 			{
-				if (stream.Size())
+				if (stream.Size() || status != STOPPED)
 				{
 					state.Begin( baseChunk );
 
-					if (status != STOPPED)
+					if (status == PLAYING)
 					{
-						const dword p = (status == PLAYING ? pos : 0);
-						Cycle c = cycles / clocks[cpu.GetModel()][0];
-
-						if (c > cpu.GetCycles())
-							c -= cpu.GetCycles();
-						else
-							c = 0;
-
-						c /= cpu.GetClock();
-
-						const byte data[] =
-						{
-							status,
-							in,
-							out,
-							p >>  0 & 0xFF,
-							p >>  8 & 0xFF,
-							p >> 16 & 0xFF,
-							p >> 24 & 0xFF,
-							c >>  0 & 0xFF,
-							c >>  8 & 0xFF,
-							c >> 16 & 0xFF,
-							c >> 24 & 0xFF
-						};
-
-						state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
+						state.Begin( AsciiId<'P','L','Y'>::V ).Write32( pos ).Write8( in ).Write32( cycles ).Write32( multiplier ).End();
+					}
+					else if (status == RECORDING)
+					{
+						state.Begin( AsciiId<'R','E','C'>::V ).Write8( out ).Write32( cycles ).Write32( multiplier ).End();
 					}
 
-					state.Begin( AsciiId<'D','A','T'>::V ).Write32( stream.Size() ).Compress( stream.Begin(), stream.Size() ).End();
+					if (stream.Size())
+						state.Begin( AsciiId<'D','A','T'>::V ).Write32( stream.Size() ).Compress( stream.Begin(), stream.Size() ).End();
 
 					state.End();
 				}
@@ -293,37 +259,52 @@ namespace Nes
 
 			void FamilyKeyboard::DataRecorder::LoadState(State::Loader& state)
 			{
-				Stop();
+				Stop( true );
 
 				while (const dword chunk = state.Begin())
 				{
 					switch (chunk)
 					{
-						case AsciiId<'R','E','G'>::V:
-						{
-							State::Loader::Data<11> data( state );
+						case AsciiId<'P','L','Y'>::V:
 
-							status = (data[0] == 1 ? PLAYING : data[0] == 2 ? RECORDING : STOPPED);
-							in = data[1] & 0x2;
-							out = data[2];
+							NST_VERIFY( status == STOPPED );
 
-							if (status == PLAYING)
-								pos = data[3] | data[4] << 8 | dword(data[5]) << 16 | dword(data[6]) << 24;
-
-							if (status != STOPPED)
+							if (status == STOPPED)
 							{
-								cycles  = data[7] | data[8] << 8 | dword(data[9]) << 16 | dword(data[10]) << 24;
-								cycles *= cpu.GetClock() * clocks[cpu.GetModel()][0];
-								cycles += cpu.GetCycles() * clocks[cpu.GetModel()][0];
-							}
+								status = PLAYING;
+								pos = state.Read32();
+								in = state.Read8() & 0x2;
 
+								cycles = state.Read32();
+
+								if (const dword multiplier = state.Read32())
+									cycles = cycles * (cpu.GetClockDivider() * TAPE_CLOCK) / multiplier;
+								else
+									cycles = 0;
+							}
 							break;
-						}
+
+						case AsciiId<'R','E','C'>::V:
+
+							NST_VERIFY( status == STOPPED );
+
+							if (status == STOPPED)
+							{
+								status = RECORDING;
+								out = state.Read8();
+
+								cycles = state.Read32();
+
+								if (const dword multiplier = state.Read32())
+									cycles = cycles * (cpu.GetClockDivider() * TAPE_CLOCK) / multiplier;
+								else
+									cycles = 0;
+							}
+							break;
 
 						case AsciiId<'D','A','T'>::V:
 						{
 							const dword size = state.Read32();
-
 							NST_VERIFY( size > 0 && size <= MAX_LENGTH );
 
 							if (size > 0 && size <= MAX_LENGTH)
@@ -339,39 +320,26 @@ namespace Nes
 					state.End();
 				}
 
-				if (status != STOPPED)
+				if (status == PLAYING)
 				{
-					if (stream.Size() && pos < stream.Size() && cycles <= clocks[cpu.GetModel()][1] * 2)
+					NST_VERIFY( pos < stream.Size() );
+
+					if (pos < stream.Size())
 					{
 						Start();
 					}
 					else
 					{
 						status = STOPPED;
-						cycles = Cpu::CYCLE_MAX-1UL;
+						cycles = 0;
+						pos = 0;
+						in = 0;
 					}
 				}
-			}
-
-			void FamilyKeyboard::DataRecorder::Start()
-			{
-				cpu.AddHook( Hook(this,&DataRecorder::Hook_Tape) );
-				Api::TapeRecorder::eventCallback( status == PLAYING ? Api::TapeRecorder::EVENT_PLAYING : Api::TapeRecorder::EVENT_RECORDING );
-			}
-
-			Result FamilyKeyboard::DataRecorder::Stop()
-			{
-				if (status == STOPPED)
-					return RESULT_NOP;
-
-				status = STOPPED;
-				cycles = Cpu::CYCLE_MAX-1UL;
-				in = 0;
-				out = 0;
-
-				Api::TapeRecorder::eventCallback( Api::TapeRecorder::EVENT_STOPPED );
-
-				return RESULT_OK;
+				else if (status == RECORDING)
+				{
+					Start();
+				}
 			}
 
 			Result FamilyKeyboard::PlayTape()
@@ -409,30 +377,70 @@ namespace Nes
 				return dataRecorder ? dataRecorder->Playable() : false;
 			}
 
+			Result FamilyKeyboard::DataRecorder::Record()
+			{
+				if (status == RECORDING)
+					return RESULT_NOP;
+
+				if (status == PLAYING)
+					return RESULT_ERR_NOT_READY;
+
+				status = RECORDING;
+				stream.Destroy();
+
+				Start();
+
+				return RESULT_OK;
+			}
+
+			Result FamilyKeyboard::DataRecorder::Play()
+			{
+				if (status == PLAYING)
+					return RESULT_NOP;
+
+				if (status == RECORDING || !Playable())
+					return RESULT_ERR_NOT_READY;
+
+				status = PLAYING;
+
+				Start();
+
+				return RESULT_OK;
+			}
+
+			NST_NO_INLINE void FamilyKeyboard::DataRecorder::Start()
+			{
+				clock = cpu.GetClockBase();
+				multiplier = cpu.GetClockDivider() * TAPE_CLOCK;
+
+				cpu.AddHook( Hook(this,&DataRecorder::Hook_Tape) );
+
+				Api::TapeRecorder::eventCallback( status == PLAYING ? Api::TapeRecorder::EVENT_PLAYING : Api::TapeRecorder::EVENT_RECORDING );
+			}
+
+			NST_NO_INLINE Result FamilyKeyboard::DataRecorder::Stop(const bool removeHook)
+			{
+				if (removeHook)
+					cpu.RemoveHook( Hook(this,&DataRecorder::Hook_Tape) );
+
+				if (status == STOPPED)
+					return RESULT_NOP;
+
+				status = STOPPED;
+				cycles = 0;
+				multiplier = 0;
+				in = 0;
+				out = 0;
+				pos = 0;
+
+				Api::TapeRecorder::eventCallback( Api::TapeRecorder::EVENT_STOPPED );
+
+				return RESULT_OK;
+			}
+
 			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
-
-			void FamilyKeyboard::DataRecorder::EndFrame()
-			{
-				if (cycles == Cpu::CYCLE_MAX)
-					return;
-
-				if (cycles != Cpu::CYCLE_MAX-1UL)
-				{
-					const Cycle frame = cpu.GetFrameCycles() * clocks[cpu.GetModel()][0];
-
-					if (cycles > frame)
-						cycles -= frame;
-					else
-						cycles = 0;
-				}
-				else
-				{
-					cycles = Cpu::CYCLE_MAX;
-					cpu.RemoveHook( Hook(this,&DataRecorder::Hook_Tape) );
-				}
-			}
 
 			void FamilyKeyboard::EndFrame()
 			{
@@ -478,7 +486,7 @@ namespace Nes
 
 			NES_HOOK(FamilyKeyboard::DataRecorder,Tape)
 			{
-				for (const Cycle next = cpu.GetCycles() * clocks[cpu.GetModel()][0]; cycles < next; cycles += clocks[cpu.GetModel()][1])
+				for (const qword next = qword(cpu.GetCycles()) * multiplier; cycles < next; cycles += clock)
 				{
 					if (status == PLAYING)
 					{
@@ -497,7 +505,7 @@ namespace Nes
 						}
 						else
 						{
-							Stop();
+							Stop( false );
 							break;
 						}
 					}
@@ -511,7 +519,7 @@ namespace Nes
 						}
 						else
 						{
-							Stop();
+							Stop( false );
 							break;
 						}
 					}

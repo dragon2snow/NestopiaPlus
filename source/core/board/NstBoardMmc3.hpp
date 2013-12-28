@@ -29,7 +29,7 @@
 #pragma once
 #endif
 
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 
 namespace Nes
 {
@@ -62,21 +62,25 @@ namespace Nes
 
 				public:
 
-					explicit BaseIrq(bool p=false)
+					explicit BaseIrq(bool p)
 					: persistant(p) {}
 
-					bool Clock()
+					NST_FORCE_INLINE bool Clock()
 					{
-						uint tmp = count;
+						const uint tmp = count;
 
-						if (!count || reload)
+						if (reload)
+						{
+							reload = false;
+							count = latch;
+						}
+						else if (!count)
 						{
 							count = latch;
-							reload = false;
 						}
 						else
 						{
-							--count;
+							count--;
 						}
 
 						return (tmp | persistant) && !count && enabled;
@@ -114,10 +118,10 @@ namespace Nes
 				};
 
 				template<uint Delay=0>
-				struct Irq : ClockUnits::A12<BaseIrq,BaseIrq::CLOCK_FILTER,Delay>
+				struct Irq : Timer::A12<BaseIrq,BaseIrq::CLOCK_FILTER,Delay>
 				{
 					Irq(Cpu& c,Ppu& p,bool persistant)
-					: ClockUnits::A12<BaseIrq,BaseIrq::CLOCK_FILTER,Delay>(c,p,persistant) {}
+					: Timer::A12<BaseIrq,BaseIrq::CLOCK_FILTER,Delay>(c,p,persistant) {}
 				};
 
 			protected:

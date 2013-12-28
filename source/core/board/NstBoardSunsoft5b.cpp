@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstBoard.hpp"
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 #include "NstBoardSunsoftFme7.hpp"
 #include "NstBoardSunsoft5b.hpp"
 
@@ -137,7 +137,8 @@ namespace Nes
 
 				bool S5b::Sound::UpdateSettings()
 				{
-					output = GetVolume(EXT_S5B) * 94U / DEFAULT_VOLUME;
+					uint volume = GetVolume(EXT_S5B) * 94U / DEFAULT_VOLUME;
+					output = IsMuted() ? 0 : volume;
 
 					GetOscillatorClock( rate, fixed );
 
@@ -150,7 +151,7 @@ namespace Nes
 
 					dcBlocker.Reset();
 
-					return output;
+					return volume;
 				}
 
 				void S5b::SubLoad(State::Loader& state,const dword baseChunk)

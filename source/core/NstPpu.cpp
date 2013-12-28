@@ -92,10 +92,10 @@ namespace Nes
 		{
 			for (uint i=0; i < 0x400; ++i)
 			{
-				block[i][0] = (i & 0x03) ? (i >> 6 & 0xC) | (i >> 0 & 0x3) : 0;
-				block[i][1] = (i & 0x0C) ? (i >> 6 & 0xC) | (i >> 2 & 0x3) : 0;
-				block[i][2] = (i & 0x30) ? (i >> 6 & 0xC) | (i >> 4 & 0x3) : 0;
-				block[i][3] = (i & 0xC0) ? (i >> 6 & 0xC) | (i >> 6 & 0x3) : 0;
+				block[i][0] = (i & 0xC0) ? (i >> 6 & 0xC) | (i >> 6 & 0x3) : 0;
+				block[i][1] = (i & 0x30) ? (i >> 6 & 0xC) | (i >> 4 & 0x3) : 0;
+				block[i][2] = (i & 0x0C) ? (i >> 6 & 0xC) | (i >> 2 & 0x3) : 0;
+				block[i][3] = (i & 0x03) ? (i >> 6 & 0xC) | (i >> 0 & 0x3) : 0;
 			}
 		}
 
@@ -191,8 +191,8 @@ namespace Nes
 				io.buffer = Io::BUFFER_GARBAGE;
 
 				regs.status = 0;
-				regs.ctrl0 = 0;
-				regs.ctrl1 = 0;
+				regs.ctrl[0] = 0;
+				regs.ctrl[1] = 0;
 				regs.frame = 0;
 				regs.oam = 0;
 
@@ -211,8 +211,8 @@ namespace Nes
 				io.buffer = 0;
 
 				regs.status = 0;
-				regs.ctrl0 = 0;
-				regs.ctrl1 = 0;
+				regs.ctrl[0] = 0;
+				regs.ctrl[1] = 0;
 
 				scroll.latch = 0;
 				scroll.xFine = 0;
@@ -241,7 +241,7 @@ namespace Nes
 				nmt.SwapBanks<SIZE_2K,0x0000>(0,0);
 			}
 
-			chr.ResetAccessors();
+			chr.ResetAccessor();
 			nmt.ResetAccessors();
 
 			cycles.vClock = 0;
@@ -251,7 +251,7 @@ namespace Nes
 
 			io.address = 0;
 			io.pattern = 0;
-			io.a12.Unset();
+			io.line.Unset();
 
 			tiles.pattern[0] = 0;
 			tiles.pattern[1] = 0;
@@ -270,12 +270,18 @@ namespace Nes
 
 			output.target = NULL;
 
-			hActiveHook = Hook( this, &Ppu::Hook_Nop );
-			hBlankHook = Hook( this, &Ppu::Hook_Nop );
+			hActiveHook.Unset();
+			hBlankHook.Unset();
 
 			UpdateStates();
 
 			screen.Clear();
+		}
+
+		uint Ppu::SetAddressLineHook(const Core::Io::Line& line)
+		{
+			io.line = line;
+			return io.address;
 		}
 
 		void Ppu::SetHActiveHook(const Hook& hook)
@@ -290,15 +296,13 @@ namespace Nes
 
 		void Ppu::UpdateStates()
 		{
-			scroll.increase = (regs.ctrl0 & Regs::CTRL0_INC32) ? 32 : 1;
-			scroll.pattern = (regs.ctrl0 & Regs::CTRL0_BG_OFFSET) << 8;
-			oam.height = (regs.ctrl0 >> 2 & 8) + 8;
+			oam.height = (regs.ctrl[0] >> 2 & 8) + 8;
 
-			tiles.show[0] = (regs.ctrl1 & Regs::CTRL1_BG_ENABLED) ? 0xFF : 0x00;
-			tiles.show[1] = (regs.ctrl1 & Regs::CTRL1_BG_ENABLED_NO_CLIP) == Regs::CTRL1_BG_ENABLED_NO_CLIP ? 0xFF : 0x00;
+			tiles.show[0] = (regs.ctrl[1] & Regs::CTRL1_BG_ENABLED) ? 0xFF : 0x00;
+			tiles.show[1] = (regs.ctrl[1] & Regs::CTRL1_BG_ENABLED_NO_CLIP) == Regs::CTRL1_BG_ENABLED_NO_CLIP ? 0xFF : 0x00;
 
-			oam.show[0] = (regs.ctrl1 & Regs::CTRL1_SP_ENABLED) ? 0xFF : 0x00;
-			oam.show[1] = (regs.ctrl1 & Regs::CTRL1_SP_ENABLED_NO_CLIP) == Regs::CTRL1_SP_ENABLED_NO_CLIP ? 0xFF : 0x00;
+			oam.show[0] = (regs.ctrl[1] & Regs::CTRL1_SP_ENABLED) ? 0xFF : 0x00;
+			oam.show[1] = (regs.ctrl[1] & Regs::CTRL1_SP_ENABLED_NO_CLIP) == Regs::CTRL1_SP_ENABLED_NO_CLIP ? 0xFF : 0x00;
 
 			UpdatePalette();
 		}
@@ -316,8 +320,8 @@ namespace Nes
 			{
 				const byte data[11] =
 				{
-					regs.ctrl0,
-					regs.ctrl1,
+					regs.ctrl[0],
+					regs.ctrl[1],
 					regs.status,
 					scroll.address & 0xFF,
 					scroll.address >> 8,
@@ -359,8 +363,8 @@ namespace Nes
 					{
 						State::Loader::Data<11> data( state );
 
-						regs.ctrl0     = data[0];
-						regs.ctrl1     = data[1];
+						regs.ctrl[0]   = data[0];
+						regs.ctrl[1]   = data[1];
 						regs.status    = data[2] & Regs::STATUS_BITS;
 						scroll.address = data[3] | (data[4] << 8 & 0x7F00);
 						scroll.latch   = data[5] | (data[6] << 8 & 0x7F00);
@@ -412,48 +416,17 @@ namespace Nes
 			cpu.AddHook( Hook(this,&Ppu::Hook_Sync) );
 		}
 
-		void Ppu::ChrMem::ResetAccessors()
+		void Ppu::ChrMem::ResetAccessor()
 		{
-			accessors[0].Set( this, &ChrMem::Access_Pattern );
-			accessors[1].Set( this, &ChrMem::Access_Pattern );
-		}
-
-		void Ppu::ChrMem::SetDefaultAccessor(uint i)
-		{
-			NST_ASSERT( i < 2 );
-			accessors[i].Set( this, &ChrMem::Access_Pattern );
+			accessor.Set( this, &ChrMem::Access_Pattern );
 		}
 
 		void Ppu::NmtMem::ResetAccessors()
 		{
-			accessors[0][0].Set( this, &NmtMem::Access_Name_2000 );
-			accessors[0][1].Set( this, &NmtMem::Access_Name_2000 );
-			accessors[1][0].Set( this, &NmtMem::Access_Name_2400 );
-			accessors[1][1].Set( this, &NmtMem::Access_Name_2400 );
-			accessors[2][0].Set( this, &NmtMem::Access_Name_2800 );
-			accessors[2][1].Set( this, &NmtMem::Access_Name_2800 );
-			accessors[3][0].Set( this, &NmtMem::Access_Name_2C00 );
-			accessors[3][1].Set( this, &NmtMem::Access_Name_2C00 );
-		}
-
-		void Ppu::NmtMem::SetDefaultAccessor(uint i,uint j)
-		{
-			NST_ASSERT( i < 4 && j < 2 );
-
-			accessors[i][j].Set
-			(
-				this,
-				i == 0 ? &NmtMem::Access_Name_2000 :
-				i == 1 ? &NmtMem::Access_Name_2400 :
-				i == 2 ? &NmtMem::Access_Name_2800 :
-                         &NmtMem::Access_Name_2C00
-			);
-		}
-
-		void Ppu::NmtMem::SetDefaultAccessors(uint i)
-		{
-			SetDefaultAccessor( i, 0 );
-			SetDefaultAccessor( i, 1 );
+			accessors[0].Set( this, &NmtMem::Access_Name_2000 );
+			accessors[1].Set( this, &NmtMem::Access_Name_2400 );
+			accessors[2].Set( this, &NmtMem::Access_Name_2800 );
+			accessors[3].Set( this, &NmtMem::Access_Name_2C00 );
 		}
 
 		void Ppu::SetModel(const PpuModel m,const bool yuvConversion)
@@ -464,10 +437,12 @@ namespace Nes
 				regs.frame = 0;
 				output.burstPhase = 0;
 
-				if (model == PPU_RP2C07)
-					cycles.one = PPU_RP2C07_CC;
-				else
-					cycles.one = PPU_RP2C02_CC;
+				switch (model)
+				{
+					case PPU_RP2C07: cycles.one = PPU_RP2C07_CC; break;
+					case PPU_DENDY:  cycles.one = PPU_DENDY_CC;  break;
+					default:         cycles.one = PPU_RP2C02_CC; break;
+				}
 			}
 
 			const byte* const map =
@@ -498,13 +473,14 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		inline Cycle Ppu::GetCycles() const
+		NST_FORCE_INLINE Cycle Ppu::GetCycles() const
 		{
 			return (cycles.vClock + cycles.hClock) * cycles.one;
 		}
 
-		inline Cycle Ppu::GetLocalCycles(Cycle clock) const
+		NST_FORCE_INLINE Cycle Ppu::GetLocalCycles(Cycle clock) const
 		{
+			NST_COMPILE_ASSERT( PPU_DENDY_CC == PPU_RP2C02_CC || PPU_DENDY_CC == PPU_RP2C07_CC );
 			return cycles.one == PPU_RP2C02_CC ? clock / PPU_RP2C02_CC : (clock+PPU_RP2C07_CC-1) / PPU_RP2C07_CC;
 		}
 
@@ -512,9 +488,10 @@ namespace Nes
 		{
 			NST_ASSERT
 			(
-				scanline == SCANLINE_VBLANK &&
+				(scanline == SCANLINE_VBLANK) &&
 				(cycles.hClock == HCLOCK_BOOT || cycles.hClock == HCLOCK_DUMMY) &&
-				(cpu.GetModel() == CPU_RP2A07) == (model == PPU_RP2C07)
+				(cpu.GetModel() == CPU_RP2A07) == (model == PPU_RP2C07) &&
+				(cpu.GetModel() == CPU_DENDY)  == (model == PPU_DENDY)
 			);
 
 			oam.limit = oam.buffer + ((oam.spriteLimit || frameLock) ? Oam::STD_LINE_SPRITES*4 : Oam::MAX_LINE_SPRITES*4);
@@ -559,13 +536,25 @@ namespace Nes
 						frame = PPU_RP2C07_HVSYNCBOOT;
 					}
 					break;
+
+				case PPU_DENDY:
+
+					if (cycles.hClock == HCLOCK_DUMMY)
+					{
+						cycles.vClock = PPU_DENDY_HVINT / PPU_DENDY_CC - HCLOCK_DUMMY;
+						cycles.count = PPU_DENDY_HVINT;
+						frame = PPU_DENDY_HVSYNC;
+					}
+					else
+					{
+						cycles.vClock = PPU_DENDY_HVSYNCBOOT / PPU_DENDY_CC - HCLOCK_BOOT;
+						cycles.count = PPU_DENDY_HVSYNCBOOT;
+						frame = PPU_DENDY_HVSYNCBOOT;
+					}
+					break;
 			}
 
 			cpu.SetFrameCycles( frame );
-		}
-
-		NES_HOOK(Ppu,Nop)
-		{
 		}
 
 		NES_HOOK(Ppu,Sync)
@@ -588,9 +577,9 @@ namespace Nes
 			}
 		}
 
-		void Ppu::Update(Cycle dataSetup)
+		void Ppu::Update(Cycle dataSetup,const uint readAddress)
 		{
-			dataSetup += cpu.Update();
+			dataSetup += cpu.Update( readAddress );
 
 			if (cycles.count < dataSetup)
 			{
@@ -647,29 +636,78 @@ namespace Nes
 
 		NST_FORCE_INLINE uint Ppu::Chr::FetchPattern(uint address) const
 		{
-			address &= 0x1FFF;
-			return accessors[address >> 12].Fetch( address );
+			return accessor.Fetch( address & 0x1FFF );
 		}
 
 		NST_FORCE_INLINE uint Ppu::Nmt::FetchName(uint address) const
 		{
-			const uint offset = address & 0x03FF;
-			return accessors[address >> 10 & 0x3][(offset + 0x40) >> 10].Fetch( offset );
+			return accessors[address >> 10 & 0x3].Fetch( address & 0x3FF );
 		}
 
 		NST_FORCE_INLINE uint Ppu::Nmt::FetchAttribute(uint address) const
 		{
-			return accessors[address >> 10 & 0x3][1].Fetch( 0x3C0 | (address >> 4 & 0x038) | (address >> 2 & 0x007) );
+			return accessors[address >> 10 & 0x3].Fetch( 0x3C0 | (address & 0x03F) );
 		}
 
-		NST_FORCE_INLINE uint Ppu::FetchName() const
+		NST_FORCE_INLINE void Ppu::UpdateAddressLine(uint address)
 		{
-			return nmt.FetchName( io.address ) << 4 | scroll.address >> 12 | scroll.pattern;
+			NST_ASSERT( address <= 0x3FFF );
+			io.address = address;
+
+			if (io.line)
+				io.line.Toggle( io.address, GetCycles() );
 		}
 
-		NST_FORCE_INLINE uint Ppu::FetchAttribute() const
+		NST_FORCE_INLINE void Ppu::UpdateScrollAddressLine()
 		{
-			return nmt.FetchAttribute( io.address ) >> ((scroll.address & 0x2) | (scroll.address >> 4 & 0x4)) & 0x3;
+			if (io.line)
+				io.line.Toggle( scroll.address & 0x3FFF, cpu.GetCycles() );
+		}
+
+		NST_FORCE_INLINE void Ppu::OpenName()
+		{
+			UpdateAddressLine( 0x2000 | (scroll.address & 0x0FFF) );
+		}
+
+		NST_FORCE_INLINE void Ppu::FetchName()
+		{
+			io.pattern = nmt.FetchName( io.address ) << 4 | scroll.address >> 12 | (regs.ctrl[0] << 8 & 0x1000);
+		}
+
+		NST_FORCE_INLINE void Ppu::OpenAttribute()
+		{
+			UpdateAddressLine( 0x23C0 | (scroll.address & 0x0C00) | (scroll.address >> 4 & 0x0038) | (scroll.address >> 2 & 0x0007) );
+		}
+
+		NST_FORCE_INLINE void Ppu::FetchAttribute()
+		{
+			tiles.attribute = nmt.FetchAttribute( io.address ) >> ((scroll.address & 0x2) | (scroll.address >> 4 & 0x4));
+		}
+
+		NST_FORCE_INLINE void Ppu::OpenPattern(uint address)
+		{
+			UpdateAddressLine( address );
+		}
+
+		NST_FORCE_INLINE uint Ppu::FetchSpPattern() const
+		{
+			return chr.FetchPattern( io.address );
+		}
+
+		NST_FORCE_INLINE void Ppu::FetchBgPattern0()
+		{
+			const uint pattern = chr.FetchPattern( io.address );
+
+			tiles.pattern[1] = pattern >> 0 & 0x55;
+			tiles.pattern[0] = pattern >> 1 & 0x55;
+		}
+
+		NST_FORCE_INLINE void Ppu::FetchBgPattern1()
+		{
+			const uint pattern = chr.FetchPattern( io.address );
+
+			tiles.pattern[0] |= pattern << 0 & 0xAA;
+			tiles.pattern[1] |= pattern << 1 & 0xAA;
 		}
 
 		uint Ppu::GetPixelCycles() const
@@ -677,28 +715,19 @@ namespace Nes
 			return (scanline+1)-1U < 240 ? scanline * 256 + NST_MIN(cycles.hClock,255) : ~0U;
 		}
 
-		inline bool Ppu::IsDead() const
+		NST_FORCE_INLINE bool Ppu::IsDead() const
 		{
-			return scanline >= 240 || !(regs.ctrl1 & Regs::CTRL1_BG_SP_ENABLED);
+			return scanline == SCANLINE_VBLANK || !(regs.ctrl[1] & Regs::CTRL1_BG_SP_ENABLED);
 		}
 
-		inline void Ppu::UpdateScrollAddress(const uint newAddress)
+		NST_FORCE_INLINE uint Ppu::Coloring() const
 		{
-			const uint oldAddress = scroll.address;
-			scroll.address = newAddress;
-
-			if (io.a12 && (newAddress & 0x1000) > (oldAddress & 0x1000))
-				io.a12.Toggle( cpu.GetCycles() );
+			return (regs.ctrl[1] & Regs::CTRL1_MONOCHROME) ? Palette::MONO : Palette::COLOR;
 		}
 
-		inline uint Ppu::Coloring() const
+		NST_FORCE_INLINE uint Ppu::Emphasis() const
 		{
-			return (regs.ctrl1 & Regs::CTRL1_MONOCHROME) ? Palette::MONO : Palette::COLOR;
-		}
-
-		inline uint Ppu::Emphasis() const
-		{
-			return (regs.ctrl1 & Regs::CTRL1_EMPHASIS) << 1;
+			return (regs.ctrl[1] & Regs::CTRL1_EMPHASIS) << 1;
 		}
 
 		NES_POKE_D(Ppu,2000)
@@ -710,19 +739,17 @@ namespace Nes
 			if (cpu.GetCycles() >= cycles.reset)
 			{
 				scroll.latch = (scroll.latch & 0x73FF) | (data & 0x03) << 10;
-				scroll.increase = (data & Regs::CTRL0_INC32) ? 32 : 1;
-				scroll.pattern = (data & Regs::CTRL0_BG_OFFSET) << 8;
 				oam.height = (data >> 2 & 8) + 8;
 
 				io.latch = data;
-				data = regs.ctrl0 ;
-				regs.ctrl0 = io.latch;
+				data = regs.ctrl[0] ;
+				regs.ctrl[0] = io.latch;
 
-				if ((regs.ctrl0 & regs.status & Regs::CTRL0_NMI) > data)
+				if ((regs.ctrl[0] & regs.status & Regs::CTRL0_NMI) > data)
 				{
 					const Cycle clock = cpu.GetCycles() + cycles.one;
 
-					if (clock < (cycles.one == PPU_RP2C02_CC ? PPU_RP2C02_HVINT : PPU_RP2C07_HVINT))
+					if (clock < GetHVIntClock())
 						cpu.DoNMI( clock );
 				}
 			}
@@ -736,20 +763,26 @@ namespace Nes
 
 			if (cpu.GetCycles() >= cycles.reset)
 			{
-				tiles.show[0] = (data & Regs::CTRL1_BG_ENABLED) ? 0xFF : 0x00;
-				tiles.show[1] = (data & Regs::CTRL1_BG_ENABLED_NO_CLIP) == Regs::CTRL1_BG_ENABLED_NO_CLIP ? 0xFF : 0x00;
+				if ((regs.ctrl[1] ^ data) & (Regs::CTRL1_BG_ENABLED_NO_CLIP|Regs::CTRL1_SP_ENABLED_NO_CLIP))
+				{
+					tiles.show[0] = (data & Regs::CTRL1_BG_ENABLED) ? 0xFF : 0x00;
+					tiles.show[1] = (data & Regs::CTRL1_BG_ENABLED_NO_CLIP) == Regs::CTRL1_BG_ENABLED_NO_CLIP ? 0xFF : 0x00;
 
-				oam.show[0] = (data & Regs::CTRL1_SP_ENABLED) ? 0xFF : 0x00;
-				oam.show[1] = (data & Regs::CTRL1_SP_ENABLED_NO_CLIP) == Regs::CTRL1_SP_ENABLED_NO_CLIP ? 0xFF : 0x00;
+					oam.show[0] = (data & Regs::CTRL1_SP_ENABLED) ? 0xFF : 0x00;
+					oam.show[1] = (data & Regs::CTRL1_SP_ENABLED_NO_CLIP) == Regs::CTRL1_SP_ENABLED_NO_CLIP ? 0xFF : 0x00;
 
-				const uint pos = (cycles.hClock - 8) >= (256-16);
+					const uint pos = (cycles.hClock - 8) >= (256-16);
 
-				tiles.mask = tiles.show[pos];
-				oam.mask = oam.show[pos];
+					tiles.mask = tiles.show[pos];
+					oam.mask = oam.show[pos];
+
+					if ((regs.ctrl[1] & Regs::CTRL1_BG_SP_ENABLED) && !(data & Regs::CTRL1_BG_SP_ENABLED))
+						UpdateScrollAddressLine();
+				}
 
 				io.latch = data;
-				data = (regs.ctrl1 ^ data) & (Regs::CTRL1_EMPHASIS|Regs::CTRL1_MONOCHROME);
-				regs.ctrl1 = io.latch;
+				data = (regs.ctrl[1] ^ data) & (Regs::CTRL1_EMPHASIS|Regs::CTRL1_MONOCHROME);
+				regs.ctrl[1] = io.latch;
 
 				if (data)
 				{
@@ -771,9 +804,9 @@ namespace Nes
 			}
 		}
 
-		NES_PEEK(Ppu,2002)
+		NES_PEEK_A(Ppu,2002)
 		{
-			Update( cycles.one );
+			Update( cycles.one, address );
 
 			uint status = regs.status & 0xFF;
 
@@ -834,7 +867,7 @@ namespace Nes
 		{
 			NST_ASSERT( regs.oam <= 0xFF );
 
-			if (!(regs.ctrl1 & Regs::CTRL1_BG_SP_ENABLED) || cpu.GetCycles() - (cpu.GetFrameCycles() - (341 * 241) * cycles.one) >= (341 * 240) * cycles.one)
+			if (!(regs.ctrl[1] & Regs::CTRL1_BG_SP_ENABLED) || cpu.GetCycles() - (cpu.GetFrameCycles() - (341 * 241) * cycles.one) >= (341 * 240) * cycles.one)
 			{
 				io.latch = oam.ram[regs.oam];
 			}
@@ -887,8 +920,8 @@ namespace Nes
 				else
 				{
 					scroll.latch = (scroll.latch & 0x7F00) | data;
-
-					UpdateScrollAddress( scroll.latch );
+					scroll.address = scroll.latch;
+					UpdateScrollAddressLine();
 				}
 			}
 		}
@@ -900,7 +933,8 @@ namespace Nes
 			NST_VERIFY( IsDead() );
 
 			uint address = scroll.address;
-			UpdateScrollAddress( (scroll.address + scroll.increase) & 0x7FFF );
+			scroll.address = (scroll.address + ((regs.ctrl[0] & Regs::CTRL0_INC32) ? 32 : 1)) & 0x7FFF;
+			UpdateScrollAddressLine();
 
 			io.latch = data;
 
@@ -930,15 +964,15 @@ namespace Nes
 			}
 		}
 
-		NES_PEEK(Ppu,2007)
+		NES_PEEK_A(Ppu,2007)
 		{
-			Update( cycles.one );
+			Update( cycles.one, address );
 
 			NST_VERIFY( IsDead() );
 
-			const uint address = scroll.address & 0x3FFF;
-
-			UpdateScrollAddress( (scroll.address + scroll.increase) & 0x7FFF );
+			address = scroll.address & 0x3FFF;
+			scroll.address = (scroll.address + ((regs.ctrl[0] & Regs::CTRL0_INC32) ? 32 : 1)) & 0x7FFF;
+			UpdateScrollAddressLine();
 
 			io.latch = (address & 0x3F00) != 0x3F00 ? io.buffer : palette.ram[address & 0x1F] & Coloring();
 			io.buffer = (address >= 0x2000 ? nmt.FetchName( address ) : chr.FetchPattern( address ));
@@ -975,11 +1009,7 @@ namespace Nes
 
 			data <<= 8;
 
-			if
-			(
-				(regs.oam == 0x00 && data < 0x2000) &&
-				(!(regs.ctrl1 & Regs::CTRL1_BG_SP_ENABLED) || cpu.GetCycles() <= (cycles.one == PPU_RP2C02_CC ? PPU_RP2C02_HVINT : PPU_RP2C07_HVINT) - cpu.GetClock() * 512)
-			)
+			if ((regs.oam == 0x00 && data < 0x2000) && (!(regs.ctrl[1] & Regs::CTRL1_BG_SP_ENABLED) || cpu.GetCycles() <= GetHVIntClock() - cpu.GetClock() * 512))
 			{
 				cpu.StealCycles( cpu.GetClock() * 512 );
 
@@ -1059,48 +1089,51 @@ namespace Nes
 		{
 			const byte* const NST_RESTRICT src[] =
 			{
-				tileLut.block[(tiles.pattern[0] & 0xAAU) >> 1 | (tiles.pattern[1] & 0xAAU) << 0 | uint(tiles.attribute) << 8],
-				tileLut.block[(tiles.pattern[0] & 0x55U) >> 0 | (tiles.pattern[1] & 0x55U) << 1 | uint(tiles.attribute) << 8]
+				tileLut.block[tiles.pattern[0] | (tiles.attribute & 0x3U) << 8],
+				tileLut.block[tiles.pattern[1] | (tiles.attribute & 0x3U) << 8]
 			};
 
 			NST_ASSERT( tiles.index == 8 );
 
 			byte* const NST_RESTRICT dst = tiles.pixels;
 
-			dst[0] = src[0][3];
-			dst[1] = src[1][3];
-			dst[2] = src[0][2];
-			dst[3] = src[1][2];
-			dst[4] = src[0][1];
-			dst[5] = src[1][1];
-			dst[6] = src[0][0];
-			dst[7] = src[1][0];
+			dst[0] = src[0][0];
+			dst[1] = src[1][0];
+			dst[2] = src[0][1];
+			dst[3] = src[1][1];
+			dst[4] = src[0][2];
+			dst[5] = src[1][2];
+			dst[6] = src[0][3];
+			dst[7] = src[1][3];
 		}
 
 		NST_SINGLE_CALL void Ppu::LoadTiles()
 		{
 			const byte* const NST_RESTRICT src[] =
 			{
-				tileLut.block[(tiles.pattern[0] & 0xAAU) >> 1 | (tiles.pattern[1] & 0xAAU) << 0 | uint(tiles.attribute) << 8],
-				tileLut.block[(tiles.pattern[0] & 0x55U) >> 0 | (tiles.pattern[1] & 0x55U) << 1 | uint(tiles.attribute) << 8]
+				tileLut.block[tiles.pattern[0] | (tiles.attribute & 0x3U) << 8],
+				tileLut.block[tiles.pattern[1] | (tiles.attribute & 0x3U) << 8]
 			};
+
+			NST_ASSERT( tiles.index == 0 || tiles.index == 8 );
 
 			byte* const NST_RESTRICT dst = tiles.pixels + tiles.index;
 			tiles.index ^= 8U;
 
-			dst[0] = src[0][3];
-			dst[1] = src[1][3];
-			dst[2] = src[0][2];
-			dst[3] = src[1][2];
-			dst[4] = src[0][1];
-			dst[5] = src[1][1];
-			dst[6] = src[0][0];
-			dst[7] = src[1][0];
+			dst[0] = src[0][0];
+			dst[1] = src[1][0];
+			dst[2] = src[0][1];
+			dst[3] = src[1][1];
+			dst[4] = src[0][2];
+			dst[5] = src[1][2];
+			dst[6] = src[0][3];
+			dst[7] = src[1][3];
 		}
 
 		NST_FORCE_INLINE void Ppu::EvaluateSpritesEven()
 		{
-			oam.latch = (cycles.hClock < 64) ? 0xFF : oam.ram[oam.address];
+			if (cycles.hClock >= 64)
+				oam.latch = oam.ram[oam.address];
 		}
 
 		NST_FORCE_INLINE void Ppu::EvaluateSpritesOdd()
@@ -1116,7 +1149,7 @@ namespace Nes
 		{
 			oam.index++;
 
-			if (uint(scanline) - oam.latch >= oam.height)
+			if (scanline - oam.latch >= oam.height)
 			{
 				if (oam.index != 64)
 				{
@@ -1130,24 +1163,24 @@ namespace Nes
 			}
 			else
 			{
-				oam.buffered[0] = oam.latch;
 				oam.address++;
 				oam.phase = &Ppu::EvaluateSpritesPhase2;
+				oam.buffered[0] = oam.latch;
 			}
 		}
 
 		void Ppu::EvaluateSpritesPhase2()
 		{
-			oam.buffered[1] = oam.latch;
 			oam.address++;
 			oam.phase = &Ppu::EvaluateSpritesPhase3;
+			oam.buffered[1] = oam.latch;
 		}
 
 		void Ppu::EvaluateSpritesPhase3()
 		{
-			oam.buffered[2] = oam.latch;
 			oam.address++;
 			oam.phase = &Ppu::EvaluateSpritesPhase4;
+			oam.buffered[2] = oam.latch;
 		}
 
 		void Ppu::EvaluateSpritesPhase4()
@@ -1180,7 +1213,7 @@ namespace Nes
 
 		void Ppu::EvaluateSpritesPhase5()
 		{
-			if (uint(scanline) - oam.latch >= oam.height)
+			if (scanline - oam.latch >= oam.height)
 			{
 				oam.address = ((oam.address + 4) & 0xFC) + ((oam.address + 1) & 0x03);
 
@@ -1226,13 +1259,17 @@ namespace Nes
 			oam.address = (oam.address + 4) & 0xFF;
 		}
 
-		void Ppu::LoadSprite(const byte* const NST_RESTRICT buffer,const uint a12rising)
+		NST_FORCE_INLINE uint Ppu::OpenSprite() const
 		{
+			return (regs.ctrl[0] & (Regs::CTRL0_SP_OFFSET|Regs::CTRL0_SP8X16)) ? 0x1FF0 : 0x0FF0;
+		}
+
+		NST_FORCE_INLINE uint Ppu::OpenSprite(const byte* const NST_RESTRICT buffer) const
+		{
+			uint address;
 			const uint comparitor = (uint(scanline) - buffer[0]) ^ ((buffer[2] & uint(Oam::Y_FLIP)) ? 0xF : 0x0);
 
-			uint address;
-
-			if (regs.ctrl0 & Regs::CTRL0_SP8X16)
+			if (regs.ctrl[0] & Regs::CTRL0_SP8X16)
 			{
 				address =
 				(
@@ -1243,48 +1280,63 @@ namespace Nes
 			}
 			else
 			{
-				address = (regs.ctrl0 & Regs::CTRL0_SP_OFFSET) << 9 | buffer[1] << 4;
+				address = (regs.ctrl[0] & Regs::CTRL0_SP_OFFSET) << 9 | buffer[1] << 4;
 			}
 
-			address |= comparitor & Oam::XFINE;
+			return address | comparitor & Oam::XFINE;
+		}
 
-			if (io.a12 && address & a12rising)
-				io.a12.Toggle( GetCycles() );
-
-			uint pattern[2] =
+		NST_FORCE_INLINE void Ppu::LoadSprite(const uint pattern0,const uint pattern1,const byte* const NST_RESTRICT buffer)
+		{
+			if (pattern0 | pattern1)
 			{
-				chr.FetchPattern( address | 0x0 ),
-				chr.FetchPattern( address | 0x8 )
-			};
-
-			if (pattern[0] | pattern[1])
-			{
-				address = (buffer[2] & uint(Oam::X_FLIP)) ? 7 : 0;
+				uint a = (buffer[2] & uint(Oam::X_FLIP)) ? 7 : 0;
 
 				uint p =
 				(
-					(pattern[0] >> 1 & 0x0055) | (pattern[1] << 0 & 0x00AA) |
-					(pattern[0] << 8 & 0x5500) | (pattern[1] << 9 & 0xAA00)
+					(pattern0 >> 1 & 0x0055) | (pattern1 << 0 & 0x00AA) |
+					(pattern0 << 8 & 0x5500) | (pattern1 << 9 & 0xAA00)
 				);
 
 				Oam::Output* const NST_RESTRICT entry = oam.visible++;
 
-				entry->pixels[( address^=6 )] = ( p       ) & 0x3;
-				entry->pixels[( address^=2 )] = ( p >>= 2 ) & 0x3;
-				entry->pixels[( address^=6 )] = ( p >>= 2 ) & 0x3;
-				entry->pixels[( address^=2 )] = ( p >>= 2 ) & 0x3;
-				entry->pixels[( address^=7 )] = ( p >>= 2 ) & 0x3;
-				entry->pixels[( address^=2 )] = ( p >>= 2 ) & 0x3;
-				entry->pixels[( address^=6 )] = ( p >>= 2 ) & 0x3;
-				entry->pixels[( address^=2 )] = ( p >>= 2 );
+				entry->pixels[( a^=6 )] = ( p       ) & 0x3;
+				entry->pixels[( a^=2 )] = ( p >>= 2 ) & 0x3;
+				entry->pixels[( a^=6 )] = ( p >>= 2 ) & 0x3;
+				entry->pixels[( a^=2 )] = ( p >>= 2 ) & 0x3;
+				entry->pixels[( a^=7 )] = ( p >>= 2 ) & 0x3;
+				entry->pixels[( a^=2 )] = ( p >>= 2 ) & 0x3;
+				entry->pixels[( a^=6 )] = ( p >>= 2 ) & 0x3;
+				entry->pixels[( a^=2 )] = ( p >>= 2 );
 
 				const uint attribute = buffer[2];
 
 				entry->x       = buffer[3];
 				entry->palette = Palette::SPRITE_OFFSET + ((attribute & Oam::COLOR) << 2);
-				entry->zero    = (buffer == oam.buffer && oam.spriteZeroInLine) ? 0x3 : 0x0;
 				entry->behind  = (attribute & Oam::BEHIND) ? 0x3 : 0x0;
+				entry->zero    = (buffer == oam.buffer && oam.spriteZeroInLine) ? 0x3 : 0x0;
 			}
+		}
+
+		void Ppu::LoadExtendedSprites()
+		{
+			const byte* NST_RESTRICT buffer = oam.buffer + (8*4);
+			NST_ASSERT( buffer < oam.buffered );
+
+			do
+			{
+				const uint address = OpenSprite( buffer );
+
+				const uint patterns[2] =
+				{
+					chr.FetchPattern( address | 0x0 ),
+					chr.FetchPattern( address | 0x8 )
+				};
+
+				LoadSprite( patterns[0], patterns[1], buffer );
+				buffer += 4;
+			}
+			while (buffer != oam.buffered);
 		}
 
 		NST_FORCE_INLINE void Ppu::RenderPixel()
@@ -1303,9 +1355,6 @@ namespace Nes
 
 				if (x)
 				{
-					// first two bits of sprite->zero and sprite->behind booleans
-					// are masked if true (for minimizing branching)
-
 					if (pixel & sprite->zero)
 						regs.status |= Regs::STATUS_SP_ZERO_HIT;
 
@@ -1322,11 +1371,12 @@ namespace Nes
 
 		NST_SINGLE_CALL void Ppu::RenderPixel255()
 		{
+			cycles.hClock = 256;
 			uint pixel = tiles.pixels[(255 + scroll.xFine) & 15] & tiles.mask;
 
 			for (const Oam::Output* NST_RESTRICT sprite=oam.output, *const end=oam.visible; sprite != end; ++sprite)
 			{
-				uint x = 255 - sprite->x;
+				uint x = 255U - sprite->x;
 
 				if (x > 7)
 					continue;
@@ -1350,7 +1400,7 @@ namespace Nes
 		{
 			NST_VERIFY( cycles.count != cycles.hClock );
 
-			if (regs.ctrl1 & Regs::CTRL1_BG_SP_ENABLED)
+			if (regs.ctrl[1] & Regs::CTRL1_BG_SP_ENABLED)
 			{
 				switch (cycles.hClock)
 				{
@@ -1362,7 +1412,6 @@ namespace Nes
 					case 40:
 					case 48:
 					case 56:
-					case 64:
 					case 72:
 					case 80:
 					case 88:
@@ -1388,18 +1437,9 @@ namespace Nes
 					case 248:
 					HActive:
 
-						if (cycles.hClock == 64)
-						{
-							NST_VERIFY( regs.oam == 0 );
-							oam.address = regs.oam & Oam::OFFSET_TO_0_1;
-							oam.phase = &Ppu::EvaluateSpritesPhase1;
-						}
-
-					HActiveBegin:
-
 						LoadTiles();
-						io.address = scroll.address;
 						EvaluateSpritesEven();
+						OpenName();
 						RenderPixel();
 
 						if (cycles.count <= cycles.hClock)
@@ -1438,7 +1478,7 @@ namespace Nes
 					case 241:
 					case 249:
 
-						io.pattern = FetchName();
+						FetchName();
 						EvaluateSpritesOdd();
 						RenderPixel();
 
@@ -1478,8 +1518,8 @@ namespace Nes
 					case 242:
 					case 250:
 
-						io.address = scroll.address;
 						EvaluateSpritesEven();
+						OpenAttribute();
 						RenderPixel();
 
 						if (cycles.count <= cycles.hClock)
@@ -1518,7 +1558,7 @@ namespace Nes
 					case 243:
 					case 251:
 
-						tiles.attribute = FetchAttribute();
+						FetchAttribute();
 						EvaluateSpritesOdd();
 
 						if (cycles.hClock == 251)
@@ -1563,12 +1603,8 @@ namespace Nes
 					case 244:
 					case 252:
 
-						io.address = io.pattern | 0x0;
-
-						if (io.a12 && scroll.pattern)
-							io.a12.Toggle( GetCycles() );
-
 						EvaluateSpritesEven();
+						OpenPattern( io.pattern | 0x0 );
 						RenderPixel();
 
 						if (cycles.count <= cycles.hClock)
@@ -1607,7 +1643,7 @@ namespace Nes
 					case 245:
 					case 253:
 
-						tiles.pattern[0] = chr.FetchPattern( io.address );
+						FetchBgPattern0();
 						EvaluateSpritesOdd();
 						RenderPixel();
 
@@ -1647,15 +1683,15 @@ namespace Nes
 					case 246:
 					case 254:
 
-						io.address = io.pattern | 0x8;
 						EvaluateSpritesEven();
+						OpenPattern( io.pattern | 0x8 );
 						RenderPixel();
 
 						if (cycles.count <= cycles.hClock)
 							break;
 
 						if (cycles.hClock == 255)
-							goto HActiveEnd;
+							goto HActive255;
 
 					case 7:
 					case 15:
@@ -1689,24 +1725,31 @@ namespace Nes
 					case 239:
 					case 247:
 
-						tiles.pattern[1] = chr.FetchPattern( io.address );
+						FetchBgPattern1();
 						EvaluateSpritesOdd();
 						RenderPixel();
-
 						tiles.mask = tiles.show[0];
 						oam.mask = oam.show[0];
 
 						if (cycles.count <= cycles.hClock)
 							break;
 
+						if (cycles.hClock != 64)
+							goto HActive;
+
+					case 64:
+
+						NST_VERIFY( regs.oam == 0 );
+						oam.address = regs.oam & Oam::OFFSET_TO_0_1;
+						oam.phase = &Ppu::EvaluateSpritesPhase1;
+						oam.latch = 0xFF;
 						goto HActive;
 
 					case 255:
-					HActiveEnd:
+					HActive255:
 
-						tiles.pattern[1] = chr.FetchPattern( io.address );
+						FetchBgPattern1();
 						EvaluateSpritesOdd();
-						cycles.hClock = 256;
 						RenderPixel255();
 
 						if (cycles.count <= 256)
@@ -1714,6 +1757,7 @@ namespace Nes
 
 					case 256:
 
+						OpenName();
 						oam.latch = 0xFF;
 						cycles.hClock = 257;
 
@@ -1722,15 +1766,30 @@ namespace Nes
 
 					case 257:
 
-						hBlankHook.Execute();
+						if (hBlankHook)
+							hBlankHook.Execute();
 
 						scroll.ResetX();
-
 						oam.visible = oam.output;
+						cycles.hClock = 258;
 
-						cycles.hClock = 260;
+						if (cycles.count <= 258)
+							break;
 
-						if (cycles.count <= 260)
+					case 258:
+					case 266:
+					case 274:
+					case 282:
+					case 290:
+					case 298:
+					case 306:
+					case 314:
+					HBlankSp:
+
+						OpenName();
+						cycles.hClock += 2;
+
+						if (cycles.count <= cycles.hClock)
 							break;
 
 					case 260:
@@ -1741,71 +1800,99 @@ namespace Nes
 					case 300:
 					case 308:
 					case 316:
+					{
+						const byte* const buffer = oam.buffer + ((cycles.hClock - 260) / 2);
+						OpenPattern( buffer >= oam.buffered ? OpenSprite() : OpenSprite(buffer) );
 
-						for (const byte* buffer = oam.buffer + ((cycles.hClock - 260) >> 1); ; buffer += 4)
-						{
-							if (buffer < oam.buffered)
-							{
-								LoadSprite( buffer );
-
-								if (cycles.hClock != 316)
-								{
-									cycles.hClock += 8;
-
-									if (cycles.count <= cycles.hClock)
-										goto End;
-								}
-								else
-								{
-									// extended +9 sprites
-
-									for (buffer += 4; buffer < oam.buffered; buffer += 4)
-										LoadSprite( buffer, 0 );
-
-									break;
-								}
-							}
-							else
-							{
-								if (io.a12 && regs.ctrl0 & (Regs::CTRL0_SP_OFFSET|Regs::CTRL0_SP8X16))
-								{
-									for (;;)
-									{
-										io.a12.Toggle( GetCycles() );
-
-										if (cycles.hClock == 316)
-											break;
-
-										cycles.hClock += 8;
-
-										if (cycles.count <= cycles.hClock)
-											goto End;
-									}
-								}
-
-								break;
-							}
-						}
-
-						if (scanline == 238)
+						if (scanline == 238 && cycles.hClock == 316)
 							regs.oam = 0;
 
-						cycles.hClock = 320;
+						if (cycles.count <= ++cycles.hClock)
+							break;
+					}
 
-						if (cycles.count <= 320)
+					case 261:
+					case 269:
+					case 277:
+					case 285:
+					case 293:
+					case 301:
+					case 309:
+					case 317:
+
+						if (oam.buffer + ((cycles.hClock - 261) / 2) < oam.buffered)
+							io.pattern = FetchSpPattern();
+
+						if (cycles.count <= ++cycles.hClock)
 							break;
 
-					case 320:
-					HBlank:
+					case 262:
+					case 270:
+					case 278:
+					case 286:
+					case 294:
+					case 302:
+					case 310:
+					case 318:
 
-						hActiveHook.Execute();
+						OpenPattern( io.address | 0x8 );
+
+						if (cycles.count <= ++cycles.hClock)
+							break;
+
+					case 263:
+					case 271:
+					case 279:
+					case 287:
+					case 295:
+					case 303:
+					case 311:
+					case 319:
+					{
+						const byte* const buffer = oam.buffer + ((cycles.hClock - 263) / 2);
+
+						if (buffer < oam.buffered)
+							LoadSprite( io.pattern, FetchSpPattern(), buffer );
+
+						if (cycles.count <= ++cycles.hClock)
+							break;
+
+						if (cycles.hClock == 320)
+							goto HBlankBg;
+					}
+
+					case 264:
+					case 272:
+					case 280:
+					case 288:
+					case 296:
+					case 304:
+					case 312:
+
+						OpenName();
+						cycles.hClock += 2;
+
+						if (cycles.count <= cycles.hClock)
+							break;
+
+						goto HBlankSp;
+
+					case 320:
+					HBlankBg:
+
+						if (oam.buffer + (8*4) < oam.buffered)
+							LoadExtendedSprites();
+
+						OpenName();
+
+						if (hActiveHook)
+							hActiveHook.Execute();
 
 						oam.latch = oam.ram[0];
 						oam.buffered = oam.buffer;
 						oam.spriteZeroInLine = false;
 						oam.index = 0;
 						oam.phase = &Ppu::EvaluateSpritesPhase0;
-						io.address = scroll.address;
 						cycles.hClock = 321;
 
 						if (cycles.count <= 321)
@@ -1813,7 +1900,7 @@ namespace Nes
 
 					case 321:
 
-						io.pattern = FetchName();
+						FetchName();
 						cycles.hClock = 322;
 
 						if (cycles.count <= 322)
@@ -1821,7 +1908,7 @@ namespace Nes
 
 					case 322:
 
-						io.address = scroll.address;
+						OpenAttribute();
 						cycles.hClock = 323;
 
 						if (cycles.count <= 323)
@@ -1829,7 +1916,7 @@ namespace Nes
 
 					case 323:
 
-						tiles.attribute = FetchAttribute();
+						FetchAttribute();
 						scroll.ClockX();
 						cycles.hClock = 324;
 
@@ -1838,11 +1925,7 @@ namespace Nes
 
 					case 324:
 
-						io.address = io.pattern | 0x0;
-
-						if (io.a12 && scroll.pattern)
-							io.a12.Toggle( GetCycles() );
-
+						OpenPattern( io.pattern | 0x0 );
 						cycles.hClock = 325;
 
 						if (cycles.count <= 325)
@@ -1850,7 +1933,7 @@ namespace Nes
 
 					case 325:
 
-						tiles.pattern[0] = chr.FetchPattern( io.address );
+						FetchBgPattern0();
 						cycles.hClock = 326;
 
 						if (cycles.count <= 326)
@@ -1858,7 +1941,7 @@ namespace Nes
 
 					case 326:
 
-						io.address = io.pattern | 0x8;
+						OpenPattern( io.pattern | 0x8 );
 						cycles.hClock = 327;
 
 						if (cycles.count <= 327)
@@ -1866,7 +1949,7 @@ namespace Nes
 
 					case 327:
 
-						tiles.pattern[1] = chr.FetchPattern( io.address );
+						FetchBgPattern1();
 						cycles.hClock = 328;
 
 						if (cycles.count <= 328)
@@ -1875,7 +1958,7 @@ namespace Nes
 					case 328:
 
 						PreLoadTiles();
-						io.address = scroll.address;
+						OpenName();
 						cycles.hClock = 329;
 
 						if (cycles.count <= 329)
@@ -1883,7 +1966,7 @@ namespace Nes
 
 					case 329:
 
-						io.pattern = FetchName();
+						FetchName();
 						cycles.hClock = 330;
 
 						if (cycles.count <= 330)
@@ -1891,7 +1974,7 @@ namespace Nes
 
 					case 330:
 
-						io.address = scroll.address;
+						OpenAttribute();
 						cycles.hClock = 331;
 
 						if (cycles.count <= 331)
@@ -1899,7 +1982,7 @@ namespace Nes
 
 					case 331:
 
-						tiles.attribute = FetchAttribute();
+						FetchAttribute();
 						scroll.ClockX();
 						cycles.hClock = 332;
 
@@ -1908,11 +1991,7 @@ namespace Nes
 
 					case 332:
 
-						io.address = io.pattern | 0x0;
-
-						if (io.a12 && scroll.pattern)
-							io.a12.Toggle( GetCycles() );
-
+						OpenPattern( io.pattern | 0x0 );
 						cycles.hClock = 333;
 
 						if (cycles.count <= 333)
@@ -1920,7 +1999,7 @@ namespace Nes
 
 					case 333:
 
-						tiles.pattern[0] = chr.FetchPattern( io.address );
+						FetchBgPattern0();
 						cycles.hClock = 334;
 
 						if (cycles.count <= 334)
@@ -1928,7 +2007,7 @@ namespace Nes
 
 					case 334:
 
-						io.address = io.pattern | 0x8;
+						OpenPattern( io.pattern | 0x8 );
 						cycles.hClock = 335;
 
 						if (cycles.count <= 335)
@@ -1936,7 +2015,15 @@ namespace Nes
 
 					case 335:
 
-						tiles.pattern[1] = chr.FetchPattern( io.address );
+						FetchBgPattern1();
+						cycles.hClock = 336;
+
+						if (cycles.count <= 336)
+							break;
+
+					case 336:
+
+						OpenName();
 						cycles.hClock = 337;
 
 						if (cycles.count <= 337)
@@ -1944,43 +2031,44 @@ namespace Nes
 
 					case 337:
 
+						tiles.mask = tiles.show[1];
+						oam.mask = oam.show[1];
+
+						if (scanline == SCANLINE_HDUMMY && model == PPU_RP2C02)
+						{
+							if (regs.frame)
+							{
+								output.burstPhase = (output.burstPhase + 2) % 3;
+								cpu.SetFrameCycles( PPU_RP2C02_HVSYNC_1 );
+							}
+							else
+							{
+								output.burstPhase = (output.burstPhase + 1) % 3;
+							}
+						}
+
+						cycles.hClock = 338;
+
+						if (cycles.count <= 338)
+							break;
+
+					case 338:
+
+						OpenName();
+
 						if (scanline++ != 239)
 						{
-							tiles.mask = tiles.show[1];
-							oam.mask = oam.show[1];
+							const uint line = (scanline != 0 || model != PPU_RP2C02 || !regs.frame ? 341 : 340);
 
 							cycles.hClock = 0;
+							cycles.vClock += line;
 
-							if (scanline == 0 && model == PPU_RP2C02)
-							{
-								if (regs.frame)
-								{
-									output.burstPhase = (output.burstPhase + 2) % 3;
-									cpu.SetFrameCycles( PPU_RP2C02_HVSYNC_1 );
-
-									cycles.vClock += 340;
-
-									if (cycles.count <= 340)
-										break;
-
-									cycles.count -= 340;
-
-									goto HActiveBegin;
-								}
-								else
-								{
-									output.burstPhase = (output.burstPhase + 1) % 3;
-								}
-							}
-
-							cycles.vClock += 341;
-
-							if (cycles.count <= 341)
+							if (cycles.count <= line)
 								break;
 
-							cycles.count -= 341;
+							cycles.count -= line;
 
-							goto HActiveBegin;
+							goto HActive;
 						}
 						else
 						{
@@ -2003,7 +2091,6 @@ namespace Nes
 					VBlank1:
 
 						regs.status = (regs.status & 0xFF) | (regs.status >> 1 & Regs::STATUS_VBLANK);
-						scanline = SCANLINE_VBLANK;
 						oam.visible = oam.output;
 						cycles.hClock = HCLOCK_VBLANK_2;
 
@@ -2017,7 +2104,7 @@ namespace Nes
 						cycles.count = Cpu::CYCLE_MAX;
 						cycles.reset = 0;
 
-						if (regs.ctrl0 & regs.status & Regs::CTRL0_NMI)
+						if (regs.ctrl[0] & regs.status & Regs::CTRL0_NMI)
 							cpu.DoNMI( cpu.GetFrameCycles() );
 
 						return;
@@ -2029,9 +2116,83 @@ namespace Nes
 
 						regs.status = 0;
 						scanline = SCANLINE_HDUMMY;
-						cycles.hClock = HCLOCK_DUMMY+4;
 
-						if (cycles.count <= HCLOCK_DUMMY+4)
+					case HCLOCK_DUMMY+8:
+					case HCLOCK_DUMMY+16:
+					case HCLOCK_DUMMY+24:
+					case HCLOCK_DUMMY+32:
+					case HCLOCK_DUMMY+40:
+					case HCLOCK_DUMMY+48:
+					case HCLOCK_DUMMY+56:
+					case HCLOCK_DUMMY+64:
+					case HCLOCK_DUMMY+72:
+					case HCLOCK_DUMMY+80:
+					case HCLOCK_DUMMY+88:
+					case HCLOCK_DUMMY+96:
+					case HCLOCK_DUMMY+104:
+					case HCLOCK_DUMMY+112:
+					case HCLOCK_DUMMY+120:
+					case HCLOCK_DUMMY+128:
+					case HCLOCK_DUMMY+136:
+					case HCLOCK_DUMMY+144:
+					case HCLOCK_DUMMY+152:
+					case HCLOCK_DUMMY+160:
+					case HCLOCK_DUMMY+168:
+					case HCLOCK_DUMMY+176:
+					case HCLOCK_DUMMY+184:
+					case HCLOCK_DUMMY+192:
+					case HCLOCK_DUMMY+200:
+					case HCLOCK_DUMMY+208:
+					case HCLOCK_DUMMY+216:
+					case HCLOCK_DUMMY+224:
+					case HCLOCK_DUMMY+232:
+					case HCLOCK_DUMMY+240:
+					case HCLOCK_DUMMY+248:
+					HDummyBg:
+
+						OpenName();
+						cycles.hClock += 2;
+
+						if (cycles.count <= cycles.hClock)
+							break;
+
+					case HCLOCK_DUMMY+2:
+					case HCLOCK_DUMMY+10:
+					case HCLOCK_DUMMY+18:
+					case HCLOCK_DUMMY+26:
+					case HCLOCK_DUMMY+34:
+					case HCLOCK_DUMMY+42:
+					case HCLOCK_DUMMY+50:
+					case HCLOCK_DUMMY+58:
+					case HCLOCK_DUMMY+66:
+					case HCLOCK_DUMMY+74:
+					case HCLOCK_DUMMY+82:
+					case HCLOCK_DUMMY+90:
+					case HCLOCK_DUMMY+98:
+					case HCLOCK_DUMMY+106:
+					case HCLOCK_DUMMY+114:
+					case HCLOCK_DUMMY+122:
+					case HCLOCK_DUMMY+130:
+					case HCLOCK_DUMMY+138:
+					case HCLOCK_DUMMY+146:
+					case HCLOCK_DUMMY+154:
+					case HCLOCK_DUMMY+162:
+					case HCLOCK_DUMMY+170:
+					case HCLOCK_DUMMY+178:
+					case HCLOCK_DUMMY+186:
+					case HCLOCK_DUMMY+194:
+					case HCLOCK_DUMMY+202:
+					case HCLOCK_DUMMY+210:
+					case HCLOCK_DUMMY+218:
+					case HCLOCK_DUMMY+226:
+					case HCLOCK_DUMMY+234:
+					case HCLOCK_DUMMY+242:
+					case HCLOCK_DUMMY+250:
+
+						OpenAttribute();
+						cycles.hClock += 2;
+
+						if (cycles.count <= cycles.hClock)
 							break;
 
 					case HCLOCK_DUMMY+4:
@@ -2067,99 +2228,136 @@ namespace Nes
 					case HCLOCK_DUMMY+244:
 					case HCLOCK_DUMMY+252:
 
-						if (io.a12 && scroll.pattern)
-						{
-							do
-							{
-								io.a12.Toggle( GetCycles() );
-								cycles.hClock += 8;
+						OpenPattern( regs.ctrl[0] << 8 & 0x1000 );
+						cycles.hClock += 2;
 
-								if (cycles.count <= cycles.hClock)
-									goto End;
-							}
-							while (cycles.hClock != HCLOCK_DUMMY+252);
-						}
-						else
-						{
-							if (cycles.count <= HCLOCK_DUMMY+260)
-							{
-								cycles.hClock = HCLOCK_DUMMY+4 + ((cycles.count - (HCLOCK_DUMMY+4-7)) & ~7U);
-								break;
-							}
+						if (cycles.count <= cycles.hClock)
+							break;
 
-							cycles.hClock = HCLOCK_DUMMY+260;
-						}
+					case HCLOCK_DUMMY+6:
+					case HCLOCK_DUMMY+14:
+					case HCLOCK_DUMMY+22:
+					case HCLOCK_DUMMY+30:
+					case HCLOCK_DUMMY+38:
+					case HCLOCK_DUMMY+46:
+					case HCLOCK_DUMMY+54:
+					case HCLOCK_DUMMY+62:
+					case HCLOCK_DUMMY+70:
+					case HCLOCK_DUMMY+78:
+					case HCLOCK_DUMMY+86:
+					case HCLOCK_DUMMY+94:
+					case HCLOCK_DUMMY+102:
+					case HCLOCK_DUMMY+110:
+					case HCLOCK_DUMMY+118:
+					case HCLOCK_DUMMY+126:
+					case HCLOCK_DUMMY+134:
+					case HCLOCK_DUMMY+142:
+					case HCLOCK_DUMMY+150:
+					case HCLOCK_DUMMY+158:
+					case HCLOCK_DUMMY+166:
+					case HCLOCK_DUMMY+174:
+					case HCLOCK_DUMMY+182:
+					case HCLOCK_DUMMY+190:
+					case HCLOCK_DUMMY+198:
+					case HCLOCK_DUMMY+206:
+					case HCLOCK_DUMMY+214:
+					case HCLOCK_DUMMY+222:
+					case HCLOCK_DUMMY+230:
+					case HCLOCK_DUMMY+238:
+					case HCLOCK_DUMMY+246:
+					case HCLOCK_DUMMY+254:
+
+						OpenPattern( io.address | 0x8 );
+						cycles.hClock += 2;
+
+						if (cycles.count <= cycles.hClock)
+							break;
+
+						if (cycles.hClock != HCLOCK_DUMMY+256)
+							goto HDummyBg;
+
+					case HCLOCK_DUMMY+256:
+					case HCLOCK_DUMMY+264:
+					case HCLOCK_DUMMY+272:
+					case HCLOCK_DUMMY+280:
+					case HCLOCK_DUMMY+288:
+					case HCLOCK_DUMMY+296:
+					case HCLOCK_DUMMY+312:
+					HDummySp:
+
+						OpenName();
+						cycles.hClock += 2;
+
+						if (cycles.count <= cycles.hClock)
+							break;
+
+					case HCLOCK_DUMMY+258:
+					case HCLOCK_DUMMY+266:
+					case HCLOCK_DUMMY+274:
+					case HCLOCK_DUMMY+282:
+					case HCLOCK_DUMMY+290:
+					case HCLOCK_DUMMY+298:
+					case HCLOCK_DUMMY+306:
+					case HCLOCK_DUMMY+314:
+
+						OpenName();
+						cycles.hClock += 2;
+
+						if (cycles.count <= cycles.hClock)
+							break;
 
 					case HCLOCK_DUMMY+260:
 					case HCLOCK_DUMMY+268:
 					case HCLOCK_DUMMY+276:
 					case HCLOCK_DUMMY+284:
 					case HCLOCK_DUMMY+292:
+					case HCLOCK_DUMMY+300:
+					case HCLOCK_DUMMY+308:
+					case HCLOCK_DUMMY+316:
 
-						if (io.a12 && regs.ctrl0 & (Regs::CTRL0_SP_OFFSET|Regs::CTRL0_SP8X16))
+						OpenPattern( OpenSprite() );
+						cycles.hClock += 2;
+
+						if (cycles.count <= cycles.hClock)
+							break;
+
+					case HCLOCK_DUMMY+262:
+					case HCLOCK_DUMMY+270:
+					case HCLOCK_DUMMY+278:
+					case HCLOCK_DUMMY+286:
+					case HCLOCK_DUMMY+294:
+					case HCLOCK_DUMMY+302:
+					case HCLOCK_DUMMY+310:
+					case HCLOCK_DUMMY+318:
+
+						OpenPattern( io.address | 0x8 );
+
+						if (cycles.hClock != HCLOCK_DUMMY+318)
 						{
-							do
-							{
-								io.a12.Toggle( GetCycles() );
-								cycles.hClock += 8;
+							cycles.hClock += 2;
 
-								if (cycles.count <= cycles.hClock)
-									goto End;
-							}
-							while (cycles.hClock != HCLOCK_DUMMY+300);
+							if (cycles.count <= cycles.hClock)
+								break;
+
+							if (cycles.hClock != HCLOCK_DUMMY+304)
+								goto HDummySp;
 						}
 						else
 						{
-							if (cycles.count <= HCLOCK_DUMMY+300)
-							{
-								cycles.hClock = HCLOCK_DUMMY+260 + ((cycles.count - (HCLOCK_DUMMY+260-7)) & ~7U);
+							cycles.hClock = 320;
+							cycles.vClock += HCLOCK_DUMMY;
+							cycles.count -= HCLOCK_DUMMY;
+
+							if (cycles.count <= cycles.hClock)
 								break;
-							}
 
-							cycles.hClock = HCLOCK_DUMMY+300;
+							goto HBlankBg;
 						}
-
-					case HCLOCK_DUMMY+300:
-
-						if (io.a12 && regs.ctrl0 & (Regs::CTRL0_SP_OFFSET|Regs::CTRL0_SP8X16))
-							io.a12.Toggle( GetCycles() );
-
-						cycles.hClock = HCLOCK_DUMMY+304;
-
-						if (cycles.count <= HCLOCK_DUMMY+304)
-							break;
 
 					case HCLOCK_DUMMY+304:
 
 						scroll.address = scroll.latch;
-						cycles.hClock = HCLOCK_DUMMY+308;
-
-						if (cycles.count <= HCLOCK_DUMMY+308)
-							break;
-
-					case HCLOCK_DUMMY+308:
-
-						if (io.a12 && regs.ctrl0 & (Regs::CTRL0_SP_OFFSET|Regs::CTRL0_SP8X16))
-							io.a12.Toggle( GetCycles() );
-
-						cycles.hClock = HCLOCK_DUMMY+316;
-
-						if (cycles.count <= HCLOCK_DUMMY+316)
-							break;
-
-					case HCLOCK_DUMMY+316:
-
-						if (io.a12 && regs.ctrl0 & (Regs::CTRL0_SP_OFFSET|Regs::CTRL0_SP8X16))
-							io.a12.Toggle( GetCycles() );
-
-						cycles.hClock = 320;
-						cycles.vClock += HCLOCK_DUMMY;
-						cycles.count -= HCLOCK_DUMMY;
-
-						if (cycles.count <= 320)
-							break;
-
-						goto HBlank;
+						goto HDummySp;
 
 					default:
 
@@ -2462,47 +2660,81 @@ namespace Nes
 
 					case 257:
 
-						hBlankHook.Execute();
+						if (hBlankHook)
+							hBlankHook.Execute();
 
 						oam.visible = oam.output;
+						cycles.hClock = 258;
 
-						cycles.hClock = 260;
-
-						if (cycles.count <= 260)
+						if (cycles.count <= 258)
 							break;
 
+					case 258:
 					case 260:
+					case 261:
+					case 262:
+					case 263:
+					case 264:
+					case 266:
 					case 268:
+					case 269:
+					case 270:
+					case 271:
+					case 272:
+					case 274:
 					case 276:
+					case 277:
+					case 278:
+					case 279:
+					case 280:
+					case 282:
 					case 284:
+					case 285:
+					case 286:
+					case 287:
+					case 288:
+					case 290:
 					case 292:
+					case 293:
+					case 294:
+					case 295:
+					case 296:
+					case 298:
 					case 300:
+					case 301:
+					case 302:
+					case 303:
+					case 304:
+					case 306:
 					case 308:
-
-						if (cycles.count <= 316)
-						{
-							cycles.hClock = 260 + ((cycles.count - (260-7)) & ~7U);
-							break;
-						}
-
+					case 309:
+					case 310:
+					case 311:
+					case 312:
+					case 314:
 					case 316:
-
-						cycles.hClock = 320;
+					case 317:
+					case 318:
+					case 319:
 
 						if (cycles.count <= 320)
+						{
+							cycles.hClock = cycles.count + ((cycles.count & 0x7) == 3 || (cycles.count & 0x7) == 1);
 							break;
+						}
 
 					case 320:
 					HBlankOff:
 
-						hActiveHook.Execute();
+						cycles.hClock = 321;
+
+						if (hActiveHook)
+							hActiveHook.Execute();
 
 						oam.buffered = oam.buffer;
 						oam.spriteZeroInLine = false;
 						oam.index = 0;
 						oam.phase = &Ppu::EvaluateSpritesPhase0;
-
-						cycles.hClock = 321;
 
 						if (cycles.count <= 321)
 							break;
@@ -2521,22 +2753,16 @@ namespace Nes
 					case 332:
 					case 333:
 					case 334:
-
-						if (cycles.count <= 335)
-						{
-							cycles.hClock = cycles.count;
-							break;
-						}
-
 					case 335:
-
-						if (cycles.count <= 337)
-						{
-							cycles.hClock = 337;
-							break;
-						}
-
+					case 336:
 					case 337:
+
+						cycles.hClock = cycles.count;
+
+						if (cycles.count <= 338)
+							break;
+
+					case 338:
 
 						if (scanline++ != 239)
 						{
@@ -2582,10 +2808,12 @@ namespace Nes
 
 						if (cycles.reset)
 						{
-							if (cycles.one == PPU_RP2C02_CC)
-								cycles.reset = PPU_RP2C02_HVREGBOOT - PPU_RP2C02_HVSYNCBOOT;
-							else
-								cycles.reset = PPU_RP2C07_HVREGBOOT - PPU_RP2C07_HVSYNCBOOT;
+							switch (model)
+							{
+								case PPU_RP2C07: cycles.reset = PPU_RP2C07_HVREGBOOT - PPU_RP2C07_HVSYNCBOOT; break;
+								case PPU_DENDY:  cycles.reset = PPU_DENDY_HVREGBOOT  - PPU_DENDY_HVSYNCBOOT;  break;
+								default:         cycles.reset = PPU_RP2C02_HVREGBOOT - PPU_RP2C02_HVSYNCBOOT; break;
+							}
 						}
 						return;
 
@@ -2593,77 +2821,175 @@ namespace Nes
 
 						regs.status = 0;
 						scanline = SCANLINE_HDUMMY;
-						cycles.hClock = HCLOCK_DUMMY+4;
 
-						if (cycles.count <= HCLOCK_DUMMY+4)
-							break;
-
+					case HCLOCK_DUMMY+2:
 					case HCLOCK_DUMMY+4:
+					case HCLOCK_DUMMY+6:
+					case HCLOCK_DUMMY+8:
+					case HCLOCK_DUMMY+10:
 					case HCLOCK_DUMMY+12:
+					case HCLOCK_DUMMY+14:
+					case HCLOCK_DUMMY+16:
+					case HCLOCK_DUMMY+18:
 					case HCLOCK_DUMMY+20:
+					case HCLOCK_DUMMY+22:
+					case HCLOCK_DUMMY+24:
+					case HCLOCK_DUMMY+26:
 					case HCLOCK_DUMMY+28:
+					case HCLOCK_DUMMY+30:
+					case HCLOCK_DUMMY+32:
+					case HCLOCK_DUMMY+34:
 					case HCLOCK_DUMMY+36:
+					case HCLOCK_DUMMY+38:
+					case HCLOCK_DUMMY+40:
+					case HCLOCK_DUMMY+42:
 					case HCLOCK_DUMMY+44:
+					case HCLOCK_DUMMY+46:
+					case HCLOCK_DUMMY+48:
+					case HCLOCK_DUMMY+50:
 					case HCLOCK_DUMMY+52:
+					case HCLOCK_DUMMY+54:
+					case HCLOCK_DUMMY+56:
+					case HCLOCK_DUMMY+58:
 					case HCLOCK_DUMMY+60:
+					case HCLOCK_DUMMY+62:
+					case HCLOCK_DUMMY+64:
+					case HCLOCK_DUMMY+66:
 					case HCLOCK_DUMMY+68:
+					case HCLOCK_DUMMY+70:
+					case HCLOCK_DUMMY+72:
+					case HCLOCK_DUMMY+74:
 					case HCLOCK_DUMMY+76:
+					case HCLOCK_DUMMY+78:
+					case HCLOCK_DUMMY+80:
+					case HCLOCK_DUMMY+82:
 					case HCLOCK_DUMMY+84:
+					case HCLOCK_DUMMY+86:
+					case HCLOCK_DUMMY+88:
+					case HCLOCK_DUMMY+90:
 					case HCLOCK_DUMMY+92:
+					case HCLOCK_DUMMY+94:
+					case HCLOCK_DUMMY+96:
+					case HCLOCK_DUMMY+98:
 					case HCLOCK_DUMMY+100:
+					case HCLOCK_DUMMY+102:
+					case HCLOCK_DUMMY+104:
+					case HCLOCK_DUMMY+106:
 					case HCLOCK_DUMMY+108:
+					case HCLOCK_DUMMY+110:
+					case HCLOCK_DUMMY+112:
+					case HCLOCK_DUMMY+114:
 					case HCLOCK_DUMMY+116:
+					case HCLOCK_DUMMY+118:
+					case HCLOCK_DUMMY+120:
+					case HCLOCK_DUMMY+122:
 					case HCLOCK_DUMMY+124:
+					case HCLOCK_DUMMY+126:
+					case HCLOCK_DUMMY+128:
+					case HCLOCK_DUMMY+130:
 					case HCLOCK_DUMMY+132:
+					case HCLOCK_DUMMY+134:
+					case HCLOCK_DUMMY+136:
+					case HCLOCK_DUMMY+138:
 					case HCLOCK_DUMMY+140:
+					case HCLOCK_DUMMY+142:
+					case HCLOCK_DUMMY+144:
+					case HCLOCK_DUMMY+146:
 					case HCLOCK_DUMMY+148:
+					case HCLOCK_DUMMY+150:
+					case HCLOCK_DUMMY+152:
+					case HCLOCK_DUMMY+154:
 					case HCLOCK_DUMMY+156:
+					case HCLOCK_DUMMY+158:
+					case HCLOCK_DUMMY+160:
+					case HCLOCK_DUMMY+162:
 					case HCLOCK_DUMMY+164:
+					case HCLOCK_DUMMY+166:
+					case HCLOCK_DUMMY+168:
+					case HCLOCK_DUMMY+170:
 					case HCLOCK_DUMMY+172:
+					case HCLOCK_DUMMY+174:
+					case HCLOCK_DUMMY+176:
+					case HCLOCK_DUMMY+178:
 					case HCLOCK_DUMMY+180:
+					case HCLOCK_DUMMY+182:
+					case HCLOCK_DUMMY+184:
+					case HCLOCK_DUMMY+186:
 					case HCLOCK_DUMMY+188:
+					case HCLOCK_DUMMY+190:
+					case HCLOCK_DUMMY+192:
+					case HCLOCK_DUMMY+194:
 					case HCLOCK_DUMMY+196:
+					case HCLOCK_DUMMY+198:
+					case HCLOCK_DUMMY+200:
+					case HCLOCK_DUMMY+202:
 					case HCLOCK_DUMMY+204:
+					case HCLOCK_DUMMY+206:
+					case HCLOCK_DUMMY+208:
+					case HCLOCK_DUMMY+210:
 					case HCLOCK_DUMMY+212:
+					case HCLOCK_DUMMY+214:
+					case HCLOCK_DUMMY+216:
+					case HCLOCK_DUMMY+218:
 					case HCLOCK_DUMMY+220:
+					case HCLOCK_DUMMY+222:
+					case HCLOCK_DUMMY+224:
+					case HCLOCK_DUMMY+226:
 					case HCLOCK_DUMMY+228:
+					case HCLOCK_DUMMY+230:
+					case HCLOCK_DUMMY+232:
+					case HCLOCK_DUMMY+234:
 					case HCLOCK_DUMMY+236:
+					case HCLOCK_DUMMY+238:
+					case HCLOCK_DUMMY+240:
+					case HCLOCK_DUMMY+242:
 					case HCLOCK_DUMMY+244:
+					case HCLOCK_DUMMY+246:
+					case HCLOCK_DUMMY+248:
+					case HCLOCK_DUMMY+250:
 					case HCLOCK_DUMMY+252:
+					case HCLOCK_DUMMY+254:
+					case HCLOCK_DUMMY+256:
+					case HCLOCK_DUMMY+258:
 					case HCLOCK_DUMMY+260:
+					case HCLOCK_DUMMY+262:
+					case HCLOCK_DUMMY+264:
+					case HCLOCK_DUMMY+266:
 					case HCLOCK_DUMMY+268:
+					case HCLOCK_DUMMY+270:
+					case HCLOCK_DUMMY+272:
+					case HCLOCK_DUMMY+274:
 					case HCLOCK_DUMMY+276:
+					case HCLOCK_DUMMY+278:
+					case HCLOCK_DUMMY+280:
+					case HCLOCK_DUMMY+282:
 					case HCLOCK_DUMMY+284:
+					case HCLOCK_DUMMY+286:
+					case HCLOCK_DUMMY+288:
+					case HCLOCK_DUMMY+290:
 					case HCLOCK_DUMMY+292:
-
-						if (cycles.count <= HCLOCK_DUMMY+300)
-						{
-							cycles.hClock = HCLOCK_DUMMY+4 + ((cycles.count - (HCLOCK_DUMMY+4-7)) & ~7U);
-							break;
-						}
-
+					case HCLOCK_DUMMY+294:
+					case HCLOCK_DUMMY+296:
+					case HCLOCK_DUMMY+298:
 					case HCLOCK_DUMMY+300:
-
-						cycles.hClock = HCLOCK_DUMMY+304;
-
-						if (cycles.count <= HCLOCK_DUMMY+304)
-							break;
-
+					case HCLOCK_DUMMY+302:
 					case HCLOCK_DUMMY+304:
-
-						cycles.hClock = HCLOCK_DUMMY+308;
-
-						if (cycles.count <= HCLOCK_DUMMY+308)
-							break;
-
+					case HCLOCK_DUMMY+306:
 					case HCLOCK_DUMMY+308:
-
-						cycles.hClock = HCLOCK_DUMMY+316;
-
-						if (cycles.count <= HCLOCK_DUMMY+316)
-							break;
-
+					case HCLOCK_DUMMY+310:
+					case HCLOCK_DUMMY+312:
+					case HCLOCK_DUMMY+314:
 					case HCLOCK_DUMMY+316:
+					{
+						NST_COMPILE_ASSERT( HCLOCK_DUMMY & 1 );
+
+						cycles.hClock = cycles.count | 1;
+
+						if (cycles.count <= HCLOCK_DUMMY+318)
+							break;
+					}
+
+					case HCLOCK_DUMMY+318:
 
 						cycles.hClock = 320;
 						cycles.vClock += HCLOCK_DUMMY;
@@ -2679,7 +3005,6 @@ namespace Nes
 						NST_UNREACHABLE();
 				}
 			}
-			End:
 
 			cycles.count = GetCycles();
 		}

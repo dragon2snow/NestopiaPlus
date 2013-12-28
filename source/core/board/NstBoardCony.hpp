@@ -85,7 +85,7 @@ namespace Nes
 						byte pr8;
 					}   regs;
 
-					ClockUnits::M2<Irq> irq;
+					Timer::M2<Irq> irq;
 					CartSwitches* const cartSwitches;
 				};
 			}

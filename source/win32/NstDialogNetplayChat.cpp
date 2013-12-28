@@ -82,7 +82,7 @@ namespace Nestopia
 					if (wtext.Length())
 					{
 						text.Clear();
-						callback( text.Import( wtext.Ptr(), true ).Ptr() );
+						callback( text.Import(wtext.Ptr()).Ptr() );
 					}
 
 					edit.Text().Clear();

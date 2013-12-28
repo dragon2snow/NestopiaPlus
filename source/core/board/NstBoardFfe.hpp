@@ -96,7 +96,7 @@ namespace Nes
 					const bool available;
 				};
 
-				ClockUnits::M2<Irq>* const irq;
+				Timer::M2<Irq>* const irq;
 				uint mode;
 				const Trainer trainer;
 			};

@@ -65,6 +65,7 @@ namespace Nes
 				}   wave;
 
 				dword rate;
+				ibool muted;
 			};
 		}
 	}

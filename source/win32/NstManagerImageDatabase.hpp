@@ -48,6 +48,7 @@ namespace Nestopia
 		private:
 
 			void OnCmdImagedatabase(uint);
+			void OnEmuEvent(Emulator::Event,Emulator::Data);
 
 			Object::Heap<Window::ImageDatabase> dialog;
 		};

@@ -349,6 +349,7 @@ namespace Nestopia
 				case Nes::Cartridge::Profile::System::NES_PAL:
 				case Nes::Cartridge::Profile::System::NES_PAL_A:
 				case Nes::Cartridge::Profile::System::NES_PAL_B:
+				case Nes::Cartridge::Profile::System::DENDY:
 
 					entry.attributes |= Entry::ATR_PAL;
 					break;
@@ -1268,9 +1269,11 @@ namespace Nestopia
 					case Nes::Cartridge::Profile::System::NES_PAL:
 					case Nes::Cartridge::Profile::System::NES_PAL_A:
 					case Nes::Cartridge::Profile::System::NES_PAL_B:
+					case Nes::Cartridge::Profile::System::DENDY:
 						return SYSTEM_PAL;
 
 					case Nes::Cartridge::Profile::System::VS_UNISYSTEM:
+					case Nes::Cartridge::Profile::System::VS_DUALSYSTEM:
 						return SYSTEM_VS;
 
 					case Nes::Cartridge::Profile::System::PLAYCHOICE_10:

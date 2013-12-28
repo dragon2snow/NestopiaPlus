@@ -54,18 +54,18 @@ namespace Nes
 			void  Reset(bool);
 			void  PowerOff();
 			void  ClearBuffers();
-			void  UpdateModel();
 			void  BeginFrame(Sound::Output*);
 			void  EndFrame();
 			void  WriteFrameCtrl(uint);
 			Cycle Clock();
-			void  ClockDMA();
+			void  ClockDMA(uint=0);
 
 			Result SetSampleRate(dword);
 			Result SetSampleBits(uint);
 			Result SetSpeed(uint);
 			Result SetVolume(uint,uint);
 			uint   GetVolume(uint) const;
+			void   Mute(bool);
 			void   SetAutoTranspose(bool);
 			void   EnableStereo(bool);
 
@@ -78,7 +78,7 @@ namespace Nes
 
 			protected:
 
-				Channel(Apu&);
+				explicit Channel(Apu&);
 				~Channel();
 
 				void  Update() const;
@@ -86,7 +86,10 @@ namespace Nes
 				dword GetSampleRate() const;
 				uint  GetVolume(uint) const;
 				void  GetOscillatorClock(Cycle&,uint&) const;
-				CpuModel GetModel() const;
+				Cycle GetCpuClockBase() const;
+				uint  GetCpuClockDivider() const;
+				Cycle GetCpuClock(uint=1) const;
+				bool  IsMuted() const;
 
 			public:
 
@@ -140,10 +143,9 @@ namespace Nes
 
 				public:
 
-					uint Disable(uint disable)
+					uint Disable(bool disable)
 					{
-						NST_ASSERT( disable <= 1 );
-						enabled = disable - 1;
+						enabled = disable - 1U;
 						count &= enabled;
 						return enabled;
 					}
@@ -254,7 +256,6 @@ namespace Nes
 			enum
 			{
 				MAX_CHANNELS            = 11,
-				RESET_CYCLES            = 2048,
 				STATUS_NO_FRAME_IRQ     = 0x40,
 				STATUS_SEQUENCE_5_STEP  = 0x80,
 				STATUS_FRAME_IRQ_ENABLE = 0,
@@ -290,7 +291,7 @@ namespace Nes
 			NES_DECL_POKE( 4013 );
 			NES_DECL_POKE( 4015 );
 			NES_DECL_PEEK( 4015 );
-			NES_DECL_PEEK( 4xxx );
+			NES_DECL_PEEK( 40xx );
 
 			NST_NO_INLINE Channel::Sample GetSample();
 
@@ -300,36 +301,34 @@ namespace Nes
 
 			NST_NO_INLINE void ClockFrameIRQ(Cycle);
 			NST_NO_INLINE void ClockFrameCounter();
-			NST_NO_INLINE void ClockDmc(Cycle);
+			NST_NO_INLINE void ClockDmc(Cycle,uint=0);
 			NST_NO_INLINE void ClockOscillators(bool);
 
 			template<typename T,bool STEREO>
 			void FlushSound();
 
 			void UpdateSettings();
-			void UpdateSettings(CpuModel);
 			void UpdateVolumes();
 
 			struct Cycles
 			{
 				Cycles();
 
-				void Update(dword,uint,CpuModel);
-				void Reset(bool);
+				void Update(dword,uint,const Cpu&);
+				void Reset(bool,CpuModel);
 
 				uint fixed;
 				Cycle rate;
 				Cycle rateCounter;
 				Cycle frameCounter;
 				Cycle extCounter;
-				CpuModel model;
 				word frameDivider;
 				word frameIrqRepeat;
 				Cycle frameIrqClock;
 				Cycle dmcClock;
 
-				static const dword frameClocks[2][4];
-				static const dword oscillatorClocks[2][2][4];
+				static const dword frameClocks[3][4];
+				static const dword oscillatorClocks[3][2][4];
 			};
 
 			class Synchronizer
@@ -343,13 +342,18 @@ namespace Nes
 
 				Synchronizer();
 
-				void Reset(uint,CpuModel,dword);
-				void Resync(uint,CpuModel);
-				NST_SINGLE_CALL dword Clock(dword,CpuModel,dword);
+				void Reset(uint,dword,const Cpu&);
+				void Resync(uint,const Cpu&);
+				NST_SINGLE_CALL dword Clock(dword,dword,const Cpu&);
 			};
 
 			class Oscillator
 			{
+				enum
+				{
+					RESET_CYCLES = 2048
+				};
+
 			protected:
 
 				Oscillator();
@@ -374,7 +378,7 @@ namespace Nes
 			public:
 
 				void Reset();
-				void UpdateSettings(dword,uint,uint);
+				void UpdateSettings(uint,dword,uint);
 				void LoadState(State::Loader&);
 				void SaveState(State::Saver&,dword) const;
 
@@ -382,7 +386,7 @@ namespace Nes
 				NST_SINGLE_CALL void WriteReg1(uint);
 				NST_SINGLE_CALL void WriteReg2(uint);
 				NST_SINGLE_CALL void WriteReg3(uint,Cycle);
-				NST_SINGLE_CALL void Disable(uint);
+				NST_SINGLE_CALL void Disable(bool);
 
 				dword GetSample();
 
@@ -430,14 +434,14 @@ namespace Nes
 				Triangle();
 
 				void Reset();
-				void UpdateSettings(dword,uint,uint);
+				void UpdateSettings(uint,dword,uint,CpuModel);
 				void LoadState(State::Loader&);
 				void SaveState(State::Saver&,dword) const;
 
 				NST_SINGLE_CALL void WriteReg0(uint);
 				NST_SINGLE_CALL void WriteReg2(uint);
 				NST_SINGLE_CALL void WriteReg3(uint,Cycle);
-				NST_SINGLE_CALL void Disable(uint);
+				NST_SINGLE_CALL void Disable(bool);
 
 				NST_SINGLE_CALL dword GetSample();
 
@@ -480,14 +484,14 @@ namespace Nes
 			public:
 
 				void Reset(CpuModel);
-				void UpdateSettings(dword,uint,uint,CpuModel);
+				void UpdateSettings(uint,dword,uint);
 				void LoadState(State::Loader&,CpuModel);
 				void SaveState(State::Saver&,dword) const;
 
 				NST_SINGLE_CALL void WriteReg0(uint);
 				NST_SINGLE_CALL void WriteReg2(uint,CpuModel);
 				NST_SINGLE_CALL void WriteReg3(uint,Cycle);
-				NST_SINGLE_CALL void Disable(uint);
+				NST_SINGLE_CALL void Disable(bool);
 
 				NST_SINGLE_CALL dword GetSample();
 
@@ -512,7 +516,7 @@ namespace Nes
 				Channel::Envelope envelope;
 				Channel::LengthCounter lengthCounter;
 
-				static const word lut[2][16];
+				static const word lut[3][16];
 			};
 
 			class Dmc
@@ -522,7 +526,7 @@ namespace Nes
 				Dmc();
 
 				void Reset(CpuModel);
-				void UpdateSettings(Cycle&,uint,CpuModel);
+				void UpdateSettings(uint);
 				void LoadState(State::Loader&,const Cpu&,CpuModel,Cycle&);
 				void SaveState(State::Saver&,dword,const Cpu&,Cycle) const;
 
@@ -530,13 +534,13 @@ namespace Nes
 				NST_SINGLE_CALL void WriteReg1(uint);
 				NST_SINGLE_CALL void WriteReg2(uint);
 				NST_SINGLE_CALL void WriteReg3(uint);
-				NST_SINGLE_CALL void Disable(uint,Cpu&);
+				NST_SINGLE_CALL void Disable(bool,Cpu&);
 
 				NST_SINGLE_CALL dword GetSample();
 
 				NST_SINGLE_CALL bool ClockDAC();
 				NST_SINGLE_CALL void Update();
-				NST_SINGLE_CALL void ClockDMA(Cpu&,Cycle&);
+				NST_SINGLE_CALL void ClockDMA(Cpu&,Cycle&,uint=0);
 
 				inline void ClearAmp();
 				inline uint GetLengthCounter() const;
@@ -545,7 +549,7 @@ namespace Nes
 
 			private:
 
-				void DoDMA(Cpu&,Cycle);
+				void DoDMA(Cpu&,Cycle,uint=0);
 
 				enum
 				{
@@ -583,7 +587,7 @@ namespace Nes
 					word buffer;
 				}   dma;
 
-				static const word lut[2][16];
+				static const word lut[3][16];
 			};
 
 			struct Settings
@@ -591,8 +595,9 @@ namespace Nes
 				Settings();
 
 				dword rate;
-				byte bits;
+				uint bits;
 				byte speed;
+				bool muted;
 				bool transpose;
 				bool stereo;
 				bool audible;
@@ -641,9 +646,14 @@ namespace Nes
 				return settings.stereo;
 			}
 
+			bool IsMuted() const
+			{
+				return settings.muted;
+			}
+
 			bool IsAudible() const
 			{
-				return settings.audible;
+				return settings.audible && !settings.muted;
 			}
 		};
 	}

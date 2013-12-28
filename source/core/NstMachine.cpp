@@ -130,7 +130,6 @@ namespace Nes
 			}
 
 			UpdateModels();
-			UpdateColorMode();
 
 			Api::Machine::eventCallback( Api::Machine::EVENT_LOAD, context.result );
 
@@ -174,14 +173,14 @@ namespace Nes
 			}
 
 			cpu.SetModel( cpuModel );
-			ppu.SetModel( ppuModel, renderer.GetPaletteType() == Video::Renderer::PALETTE_YUV );
+			UpdateVideo( ppuModel, GetColorMode() );
 
 			renderer.EnableForcedFieldMerging( ppuModel != PPU_RP2C02 );
 		}
 
-		Result Machine::UpdateColorMode()
+		Machine::ColorMode Machine::GetColorMode() const
 		{
-			return UpdateColorMode
+			return
 			(
 				renderer.GetPaletteType() == Video::Renderer::PALETTE_YUV    ? COLORMODE_YUV :
 				renderer.GetPaletteType() == Video::Renderer::PALETTE_CUSTOM ? COLORMODE_CUSTOM :
@@ -189,9 +188,19 @@ namespace Nes
 			);
 		}
 
+		Result Machine::UpdateColorMode()
+		{
+			return UpdateColorMode( GetColorMode() );
+		}
+
 		Result Machine::UpdateColorMode(const ColorMode mode)
 		{
-			ppu.SetModel( ppu.GetModel(), mode == COLORMODE_YUV );
+			return UpdateVideo( ppu.GetModel(), mode );
+		}
+
+		Result Machine::UpdateVideo(const PpuModel ppuModel,const ColorMode mode)
+		{
+			ppu.SetModel( ppuModel, mode == COLORMODE_YUV );
 
 			Video::Renderer::PaletteType palette;
 
@@ -199,7 +208,7 @@ namespace Nes
 			{
 				case COLORMODE_RGB:
 
-					switch (ppu.GetModel())
+					switch (ppuModel)
 					{
 						case PPU_RP2C04_0001: palette = Video::Renderer::PALETTE_VS1;  break;
 						case PPU_RP2C04_0002: palette = Video::Renderer::PALETTE_VS2;  break;
@@ -264,11 +273,21 @@ namespace Nes
 					extPort->Reset();
 					expPort->Reset();
 
-					ppu.Reset
-					(
-						hard,
-						image ? image->GetDesiredSystem((state & Api::Machine::NTSC) ? REGION_NTSC : REGION_PAL) != SYSTEM_FAMICOM : true
-					);
+					bool acknowledged = true;
+
+					if (image)
+					{
+						switch (image->GetDesiredSystem((state & Api::Machine::NTSC) ? REGION_NTSC : REGION_PAL))
+						{
+							case SYSTEM_FAMICOM:
+							case SYSTEM_DENDY:
+
+								acknowledged = false;
+								break;
+						}
+					}
+
+					ppu.Reset( hard, acknowledged );
 
 					if (image)
 						image->Reset( hard );
@@ -521,8 +540,9 @@ namespace Nes
 			expPort->Poke( data );
 		}
 
-		NES_PEEK(Machine,4016)
+		NES_PEEK_A(Machine,4016)
 		{
+			cpu.Update( address );
 			return OPEN_BUS | extPort->Peek(0) | expPort->Peek(0);
 		}
 
@@ -531,8 +551,9 @@ namespace Nes
 			cpu.GetApu().WriteFrameCtrl( data );
 		}
 
-		NES_PEEK(Machine,4017)
+		NES_PEEK_A(Machine,4017)
 		{
+			cpu.Update( address );
 			return OPEN_BUS | extPort->Peek(1) | expPort->Peek(1);
 		}
 	}

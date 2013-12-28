@@ -153,8 +153,8 @@ namespace Nes
 		apu   ( *this ),
 		map   ( this, &Cpu::Peek_Overflow, &Cpu::Poke_Overflow )
 		{
+			cycles.UpdateTable( GetModel() );
 			Reset( false, false );
-			cycles.SetModel( GetModel() );
 		}
 
 		#if NST_MSVC >= 1200
@@ -175,7 +175,7 @@ namespace Nes
 		{
 			if (!on || hard)
 			{
-				ram.Reset();
+				ram.Reset( GetModel() );
 
 				a = 0x00;
 				x = 0x00;
@@ -203,7 +203,7 @@ namespace Nes
 			cycles.count  = 0;
 			cycles.offset = 0;
 			cycles.round  = 0;
-			cycles.frame  = (model == CPU_RP2A03 ? PPU_RP2C02_HVSYNC : PPU_RP2C07_HVSYNC);
+			cycles.frame  = (model == CPU_RP2A03 ? PPU_RP2C02_HVSYNC : model == CPU_RP2A07 ? PPU_RP2C07_HVSYNC : PPU_DENDY_HVSYNC);
 
 			interrupt.Reset();
 			hooks.Clear();
@@ -242,16 +242,12 @@ namespace Nes
 
 		void Cpu::SetModel(const CpuModel m)
 		{
+			NST_ASSERT( pc == RESET_VECTOR && cycles.count == 0 );
+
 			if (model != m)
 			{
 				model = m;
-				cycles.SetModel( m );
-				interrupt.SetModel( m );
-
-				ticks = ticks / uint(m == CPU_RP2A03 ? CPU_RP2A07_CC : CPU_RP2A03_CC) *
-								uint(m == CPU_RP2A03 ? CPU_RP2A03_CC : CPU_RP2A07_CC);
-
-				apu.UpdateModel();
+				cycles.UpdateTable( m );
 			}
 		}
 
@@ -265,15 +261,6 @@ namespace Nes
 			hooks.Remove( hook );
 		}
 
-		Cycle Cpu::ClockConvert(Cycle clock,CpuModel model)
-		{
-			return
-			(
-				clock / (model == CPU_RP2A03 ? CPU_RP2A07_CC : CPU_RP2A03_CC) *
-						(model == CPU_RP2A03 ? CPU_RP2A03_CC : CPU_RP2A07_CC)
-			);
-		}
-
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
@@ -285,15 +272,45 @@ namespace Nes
 
 		bool Cpu::IsWriteCycle(Cycle clock) const
 		{
-			if (writeClocks[opcode])
+			if (const uint clocks = writeClocks[opcode])
 			{
 				clock = (clock - cycles.offset) / cycles.clock[0];
 
 				if (clock < 8)
-					return writeClocks[opcode] & (1U << clock);
+					return clocks >> clock & 0x1;
 			}
 
 			return false;
+		}
+
+		Cycle Cpu::GetClockBase() const
+		{
+			return model == CPU_RP2A07 || model == CPU_DENDY ? CLK_PAL : CLK_NTSC;
+		}
+
+		uint Cpu::GetClockDivider() const
+		{
+			return model == CPU_RP2A07 || model == CPU_DENDY ? CLK_PAL_DIV : CLK_NTSC_DIV;
+		}
+
+		dword Cpu::GetTime(Cycle clock) const
+		{
+			return
+			(
+				model == CPU_RP2A03 ? clock * qword( CPU_RP2A03_CC * CLK_NTSC_DIV ) / CLK_NTSC :
+				model == CPU_RP2A07 ? clock * qword( CPU_RP2A07_CC * CLK_PAL_DIV  ) / CLK_PAL  :
+                                      clock * qword( CPU_DENDY_CC  * CLK_PAL_DIV  ) / CLK_PAL
+			);
+		}
+
+		dword Cpu::GetFps() const
+		{
+			return
+			(
+				model == CPU_RP2A03 ? PPU_RP2C02_FPS :
+				model == CPU_RP2A07 ? PPU_RP2C07_FPS :
+                                      PPU_DENDY_FPS
+			);
 		}
 
 		inline uint Cpu::Cycles::InterruptEdge() const
@@ -334,7 +351,7 @@ namespace Nes
 					((interrupt.low & IRQ_DMC)         ? 0x04U : 0x00U) |
 					((interrupt.low & IRQ_EXT)         ? 0x08U : 0x00U) |
 					(jammed                            ? 0x40U : 0x00U) |
-					(model == CPU_RP2A03               ? 0x80U : 0x00U),
+					(model == CPU_RP2A07 ? 0x80U : model == CPU_DENDY ? 0x20U : 0x00U),
 					cycles.count & 0xFF,
 					cycles.count >> 8,
 					(interrupt.nmiClock != CYCLE_MAX) ? interrupt.nmiClock+1 : 0,
@@ -385,7 +402,12 @@ namespace Nes
 						{
 							State::Loader::Data<5> data( state );
 
-							stateModel = (data[0] & 0x80) ? CPU_RP2A07 : CPU_RP2A03;
+							switch (data[0] & (0x80|0x20))
+							{
+								case 0x20: stateModel = CPU_DENDY;  break;
+								case 0x80: stateModel = CPU_RP2A07; break;
+								default:   stateModel = CPU_RP2A03; break;
+							}
 
 							interrupt.nmiClock = CYCLE_MAX;
 							interrupt.irqClock = CYCLE_MAX;
@@ -430,11 +452,20 @@ namespace Nes
 
 				if (stateModel != actualModel)
 				{
-					cycles.SetModel( actualModel );
-					interrupt.SetModel( actualModel );
+					const uint clocks[2] =
+					{
+						stateModel  == CPU_RP2A03 ? CPU_RP2A03_CC : stateModel  == CPU_RP2A07 ? CPU_RP2A07_CC : CPU_DENDY_CC,
+						actualModel == CPU_RP2A03 ? CPU_RP2A03_CC : actualModel == CPU_RP2A07 ? CPU_RP2A07_CC : CPU_DENDY_CC
+					};
 
-					ticks = ticks / uint(actualModel == CPU_RP2A03 ? CPU_RP2A07_CC : CPU_RP2A03_CC) *
-									uint(actualModel == CPU_RP2A03 ? CPU_RP2A03_CC : CPU_RP2A07_CC);
+					cycles.count = cycles.count / clocks[0] * clocks[1];
+					ticks = ticks / clocks[0] * clocks[1];
+
+					if (interrupt.nmiClock != CYCLE_MAX)
+						interrupt.nmiClock = interrupt.nmiClock / clocks[0] * clocks[1];
+
+					if (interrupt.irqClock != CYCLE_MAX)
+						interrupt.irqClock = interrupt.irqClock / clocks[0] * clocks[1];
 				}
 
 				NST_VERIFY( cycles.count < cycles.frame );
@@ -655,12 +686,10 @@ namespace Nes
 			}
 		}
 
-		void Cpu::Cycles::SetModel(CpuModel model)
+		void Cpu::Cycles::UpdateTable(CpuModel model)
 		{
-			count = ClockConvert( count, model );
-
-			for (uint i=0; i < 8; ++i)
-				clock[i] = (i+1) * (model == CPU_RP2A03 ? CPU_RP2A03_CC : CPU_RP2A07_CC);
+			for (uint cc = (model == CPU_RP2A03 ? CPU_RP2A03_CC : model == CPU_RP2A07 ? CPU_RP2A07_CC : CPU_DENDY_CC), i=0; i < 8; ++i)
+				clock[i] = (i+1) * cc;
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
@@ -703,15 +732,6 @@ namespace Nes
 			low = 0;
 		}
 
-		void Cpu::Interrupt::SetModel(CpuModel model)
-		{
-			if (nmiClock != CYCLE_MAX)
-				nmiClock = ClockConvert( nmiClock, model );
-
-			if (irqClock != CYCLE_MAX)
-				irqClock = ClockConvert( nmiClock, model );
-		}
-
 		template<typename T,typename U>
 		Cpu::IoMap::IoMap(Cpu* cpu,T peek,U poke)
 		: Io::Map<SIZE_64K>( cpu, peek, poke ) {}
@@ -742,14 +762,21 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Cpu::Ram::Reset()
+		void Cpu::Ram::Reset(const CpuModel model)
 		{
-			std::memset( mem, 0xFF, sizeof(mem) );
+			if (model == CPU_DENDY)
+			{
+				std::memset( mem, 0x00, sizeof(mem) );
+			}
+			else
+			{
+				std::memset( mem, 0xFF, sizeof(mem) );
 
-			mem[0x08] = 0xF7;
-			mem[0x09] = 0xEF;
-			mem[0x0A] = 0xDF;
-			mem[0x0F] = 0xBF;
+				mem[0x08] = 0xF7;
+				mem[0x09] = 0xEF;
+				mem[0x0A] = 0xDF;
+				mem[0x0F] = 0xBF;
+			}
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE

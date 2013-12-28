@@ -47,18 +47,9 @@ namespace Nes
 				private:
 
 					void SubReset(bool);
-					void UpdateLatch(uint) const;
 
+					NES_DECL_LINE( Nmt  );
 					NES_DECL_POKE( 8000 );
-					NES_DECL_PEEK( 2006 );
-					NES_DECL_POKE( 2006 );
-
-					NES_DECL_ACCESSOR( 2000 );
-					NES_DECL_ACCESSOR( 2400 );
-					NES_DECL_ACCESSOR( 2800 );
-					NES_DECL_ACCESSOR( 2C00 );
-
-					Io::Port p2006;
 				};
 			}
 		}

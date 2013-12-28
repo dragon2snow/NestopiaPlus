@@ -22,7 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 #include "NstBoard.hpp"
 #include "NstBoardBtlSmb2c.hpp"
 

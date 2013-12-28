@@ -24,7 +24,7 @@
 
 #include <cstring>
 #include "NstBoard.hpp"
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 #include "NstBoardMmc1.hpp"
 #include "NstBoardEvent.hpp"
 #include "../api/NstApiUser.hpp"
@@ -256,11 +256,7 @@ namespace Nes
 				{
 					if (cartSwitches.ShowTime() && irq.unit.count)
 					{
-						const dword t =
-						(
-							(cpu.GetModel() == CPU_RP2A03) ? irq.unit.count * qword( CPU_RP2A03_CC * CLK_NTSC_DIV ) / CLK_NTSC :
-                                                             irq.unit.count * qword( CPU_RP2A07_CC * CLK_PAL_DIV  ) / CLK_PAL
-						);
+						const dword t = cpu.GetTime( irq.unit.count );
 
 						if (time != t)
 						{

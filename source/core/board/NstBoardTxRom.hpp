@@ -70,8 +70,7 @@ namespace Nes
 
 			private:
 
-
-                void NST_FASTCALL UpdateChr(uint,uint) const;
+				void NST_FASTCALL UpdateChr(uint,uint) const;
 			};
 		}
 	}

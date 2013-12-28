@@ -1052,6 +1052,14 @@
 					>
 				</File>
 				<File
+					RelativePath="..\source\core\board\NstBoardHenggedianzi.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\board\NstBoardHenggedianzi.hpp"
+					>
+				</File>
+				<File
 					RelativePath="..\source\core\board\NstBoardHes.cpp"
 					>
 				</File>
@@ -2196,6 +2204,14 @@
 				Name="Unl"
 				>
 				<File
+					RelativePath="..\source\core\board\NstBoardUnlA9746.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\board\NstBoardUnlA9746.hpp"
+					>
+				</File>
+				<File
 					RelativePath="..\source\core\board\NstBoardUnlCc21.cpp"
 					>
 				</File>
@@ -2233,6 +2249,14 @@
 				</File>
 				<File
 					RelativePath="..\source\core\board\NstBoardUnlMortalKombat2.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\board\NstBoardUnlN625092.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\board\NstBoardUnlN625092.hpp"
 					>
 				</File>
 				<File
@@ -2347,10 +2371,6 @@
 		</File>
 		<File
 			RelativePath="..\source\core\NstChips.hpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstClock.hpp"
 			>
 		</File>
 		<File
@@ -2575,6 +2595,10 @@
 		</File>
 		<File
 			RelativePath="..\source\core\NstStream.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstTimer.hpp"
 			>
 		</File>
 		<File

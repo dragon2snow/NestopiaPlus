@@ -40,19 +40,19 @@ namespace Nes
 			class Line : public ImplicitBool<Line>
 			{
 				class Component {};
-				typedef void (NST_FASTCALL Component::*Toggler)(Cycle);
+				typedef void (NST_FASTCALL Component::*Toggler)(Address,Cycle);
 
 				Component* component;
 				Toggler toggler;
 
-				NST_COMPILE_ASSERT( sizeof(Toggler) <= sizeof(void (*)(void*,Cycle)) );
+				NST_COMPILE_ASSERT( sizeof(Toggler) <= sizeof(void (*)(void*,Address,Cycle)) );
 
 			public:
 
 				Line() {}
 
 				template<typename T>
-				Line(T* c,void (NST_FASTCALL T::*t)(Cycle))
+				Line(T* c,void (NST_FASTCALL T::*t)(Address,Cycle))
 				:
 				component ( reinterpret_cast<Component*>(c) ),
 				toggler   ( reinterpret_cast<Toggler>(t) )
@@ -61,7 +61,7 @@ namespace Nes
 				}
 
 				template<typename T>
-				void Set(T* c,void (NST_FASTCALL T::*t)(Cycle))
+				void Set(T* c,void (NST_FASTCALL T::*t)(Address,Cycle))
 				{
 					NST_COMPILE_ASSERT( sizeof(toggler) == sizeof(t) );
 
@@ -80,22 +80,22 @@ namespace Nes
 					return component == NULL;
 				}
 
-				void Toggle(Cycle cycle) const
+				void Toggle(Address address,Cycle cycle) const
 				{
-					(*component.*toggler)( cycle );
+					(*component.*toggler)( address, cycle );
 				}
 			};
 
-			#define NES_DECL_LINE(a_) void NST_FASTCALL Line_##a_(Cycle)
-			#define NES_LINE(o_,a_) void NST_FASTCALL o_::Line_##a_(Cycle cycle)
-			#define NES_LINE_T(t_,o_,a_) t_ void NST_FASTCALL o_::Line_##a_(Cycle cycle)
+			#define NES_DECL_LINE(a_) void NST_FASTCALL Line_##a_(Address,Cycle)
+			#define NES_LINE(o_,a_) void NST_FASTCALL o_::Line_##a_(Address address,Cycle cycle)
+			#define NES_LINE_T(t_,o_,a_) t_ void NST_FASTCALL o_::Line_##a_(Address address,Cycle cycle)
 
 		#else
 
 			class Line : public ImplicitBool<Line>
 			{
 				typedef void* Component;
-				typedef void (NST_REGCALL *Toggler)(Component,Cycle);
+				typedef void (NST_REGCALL *Toggler)(Component,Address,Cycle);
 
 				Component component;
 				Toggler toggler;
@@ -127,34 +127,34 @@ namespace Nes
 					return component == NULL;
 				}
 
-				void Toggle(Cycle cycle) const
+				void Toggle(Address address,Cycle cycle) const
 				{
-					toggler( component, cycle );
+					toggler( component, address, cycle );
 				}
 			};
 
-			#define NES_DECL_LINE(a_)                                              \
-                                                                                   \
-				NST_FORCE_INLINE void NST_FASTCALL Line_M_##a_(Cycle);             \
-				static NST_NO_INLINE void NST_REGCALL Line_##a_(void*,Cycle)
+			#define NES_DECL_LINE(a_)                                                              \
+                                                                                                   \
+				NST_FORCE_INLINE void NST_FASTCALL Line_M_##a_(Address,Cycle);                     \
+				static NST_NO_INLINE void NST_REGCALL Line_##a_(void*,Address,Cycle)
 
-			#define NES_LINE(o_,a_)                                                \
-                                                                                   \
-				NST_NO_INLINE void NST_REGCALL o_::Line_##a_(void* p_,Cycle c_)    \
-				{                                                                  \
-					static_cast<o_*>(p_)->Line_M_##a_(c_);                         \
-				}                                                                  \
-                                                                                   \
-				NST_FORCE_INLINE void NST_FASTCALL o_::Line_M_##a_(Cycle cycle)
+			#define NES_LINE(o_,a_)                                                                \
+                                                                                                   \
+				NST_NO_INLINE void NST_REGCALL o_::Line_##a_(void* p_,Address a_,Cycle c_)         \
+				{                                                                                  \
+					static_cast<o_*>(p_)->Line_M_##a_(a_,c_);                                      \
+				}                                                                                  \
+                                                                                                   \
+				NST_FORCE_INLINE void NST_FASTCALL o_::Line_M_##a_(Address address,Cycle cycle)
 
-			#define NES_LINE_T(t_,o_,a_)                                           \
-                                                                                   \
-				t_ NST_NO_INLINE void NST_REGCALL o_::Line_##a_(void* p_,Cycle c_) \
-				{                                                                  \
-					static_cast<o_*>(p_)->Line_M_##a_(c_);                         \
-				}                                                                  \
-                                                                                   \
-				t_ NST_FORCE_INLINE void NST_FASTCALL o_::Line_M_##a_(Cycle cycle)
+			#define NES_LINE_T(t_,o_,a_)                                                           \
+                                                                                                   \
+				t_ NST_NO_INLINE void NST_REGCALL o_::Line_##a_(void* p_,Address a_,Cycle c_)      \
+				{                                                                                  \
+					static_cast<o_*>(p_)->Line_M_##a_(a_,c_);                                      \
+				}                                                                                  \
+                                                                                                   \
+				t_ NST_FORCE_INLINE void NST_FASTCALL o_::Line_M_##a_(Address address,Cycle cycle)
 
 		#endif
 		}

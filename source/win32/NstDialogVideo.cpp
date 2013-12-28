@@ -105,6 +105,22 @@ namespace Nestopia
 			{ IDOK,                        &Video::OnCmdOk             }
 		};
 
+		Video::DefaultMode::DefaultMode()
+		{
+			if (::GetSystemMetrics( SM_CXSCREEN ) == DEFAULT_16_9_WIDTH && ::GetSystemMetrics( SM_CYSCREEN ) == DEFAULT_16_9_HEIGHT)
+			{
+				width = DEFAULT_16_9_WIDTH;
+				height = DEFAULT_16_9_HEIGHT;
+			}
+			else
+			{
+				width = DEFAULT_4_3_WIDTH;
+				height = DEFAULT_4_3_HEIGHT;
+			}
+		}
+
+		const Video::DefaultMode Video::defaultMode;
+
 		class Video::Settings::Backup
 		{
 			const Adapters::const_iterator adapter;
@@ -629,7 +645,7 @@ namespace Nestopia
 		{
 			for (Modes::const_iterator it(settings.adapter->modes.begin()), end(settings.adapter->modes.end()); it != end; ++it)
 			{
-				if (it->bpp == settings.mode->bpp && it->width >= DEFAULT_WIDTH && it->height >= DEFAULT_HEIGHT)
+				if (it->bpp == settings.mode->bpp && it->width >= MIN_DIALOG_WIDTH && it->height >= MIN_DIALOG_HEIGHT)
 					return it;
 			}
 
@@ -698,7 +714,7 @@ namespace Nestopia
 		{
 			for (uint bpp=16; bpp <= 32; bpp += 16)
 			{
-				const Modes::const_iterator it( settings.adapter->modes.find(Mode(DEFAULT_WIDTH,DEFAULT_HEIGHT,bpp)) );
+				const Modes::const_iterator it( settings.adapter->modes.find(Mode(defaultMode.width,defaultMode.height,bpp)) );
 
 				if (it != settings.adapter->modes.end())
 					return it;
@@ -1138,7 +1154,7 @@ namespace Nestopia
 
 			if (settings.mode == settings.adapter->modes.end())
 			{
-				settings.mode = settings.adapter->modes.find( Mode(DEFAULT_WIDTH,DEFAULT_HEIGHT,mode.bpp) );
+				settings.mode = settings.adapter->modes.find( Mode(defaultMode.width,defaultMode.height,mode.bpp) );
 
 				if (settings.mode == settings.adapter->modes.end())
 					settings.mode = settings.adapter->modes.begin();

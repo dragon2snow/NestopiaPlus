@@ -23,20 +23,24 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstObjectHeap.hpp"
+#include "NstIoLog.hpp"
 #include "NstManager.hpp"
+#include "NstManagerPaths.hpp"
 #include "NstManagerCheats.hpp"
 #include "NstDialogCheats.hpp"
+#include "../core/api/NstApiCartridge.hpp"
 
 namespace Nestopia
 {
 	namespace Managers
 	{
-		Cheats::Cheats(Emulator& e,const Configuration& cfg,Window::Menu& m,const Paths& paths)
+		Cheats::Cheats(Emulator& e,const Configuration& cfg,Window::Menu& m,const Paths& p)
 		:
 		Manager ( e, m, this, &Cheats::OnEmuEvent, IDM_OPTIONS_CHEATS, &Cheats::OnCmdOptions ),
-		dialog  ( new Window::Cheats(e,cfg,paths) )
+		paths   ( p ),
+		game    ( false ),
+		dialog  ( new Window::Cheats(e,cfg,p) )
 		{
-			UpdateCodes();
 		}
 
 		Cheats::~Cheats()
@@ -48,33 +52,69 @@ namespace Nestopia
 			dialog->Save( cfg );
 		}
 
-		void Cheats::UpdateCodes() const
+		void Cheats::Load() const
+		{
+			if (game && paths.AutoLoadCheatsEnabled())
+			{
+				const Path path( paths.GetCheatPath( emulator.GetImagePath() ) );
+
+				if (dialog->Load( path ))
+					Io::Log() << "Cheats: loaded cheats from \"" << path << "\"\r\n";
+			}
+
+			Update();
+		}
+
+		void Cheats::Update() const
 		{
 			Nes::Cheats cheats( emulator );
-
 			cheats.ClearCodes();
 
-			for (uint type=0; type < Window::Cheats::NUM_CODE_TYPES; ++type)
+			if (game)
 			{
-				for (uint i=0, n=dialog->GetNumCodes( type ); i < n; ++i)
+				for (uint crc = Nes::Cartridge(emulator).GetProfile() ? Nes::Cartridge(emulator).GetProfile()->hash.GetCrc32() : 0, i = 0; i < 2; ++i)
 				{
-					if (dialog->CodeEnabled( type, i ))
-						cheats.SetCode( dialog->GetCode( type, i ) );
+					const Window::Cheats::Codes& codes = dialog->GetCodes( i ? Window::Cheats::PERMANENT_CODES : Window::Cheats::TEMPORARY_CODES );
+
+					for (Window::Cheats::Codes::const_iterator it(codes.begin()), end(codes.end()); it != end; ++it)
+					{
+						if (it->enabled && (it->crc == 0 || it->crc == crc))
+							cheats.SetCode( it->ToNesCode() );
+					}
 				}
 			}
+		}
+
+		void Cheats::Flush() const
+		{
+			Nes::Cheats cheats( emulator );
+			cheats.ClearCodes();
+
+			if (game && paths.AutoSaveCheatsEnabled())
+			{
+				const Path path( paths.GetCheatPath( emulator.GetImagePath() ) );
+
+				if (dialog->Save( path ))
+					Io::Log() << "Cheats: saved cheats to \"" << path << "\"\r\n";
+			}
+
+			dialog->Flush();
 		}
 
 		void Cheats::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
+				case Emulator::EVENT_LOAD:
+
+					game = emulator.IsGame();
+					Load();
+					break;
+
 				case Emulator::EVENT_UNLOAD:
 
-					dialog->ResetRamSearch();
-
-					if (dialog->ClearTemporaryCodes())
-						UpdateCodes();
-
+					Flush();
+					game = false;
 					break;
 
 				case Emulator::EVENT_NETPLAY_MODE:
@@ -87,7 +127,7 @@ namespace Nestopia
 		void Cheats::OnCmdOptions(uint)
 		{
 			dialog->Open();
-			UpdateCodes();
+			Update();
 		}
 	}
 }

@@ -56,6 +56,7 @@ namespace Nes
 				Stop();
 
 				rate = GetSampleRate();
+				muted = IsMuted();
 
 				return true;
 			}
@@ -93,7 +94,7 @@ namespace Nes
 					if (i < wave.length)
 					{
 						pos += wave.rate;
-						return wave.data[i];
+						return !muted ? wave.data[i] : 0;
 					}
 
 					wave.data = NULL;

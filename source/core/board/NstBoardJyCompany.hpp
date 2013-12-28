@@ -94,8 +94,7 @@ namespace Nes
 					NES_DECL_HOOK( HActive );
 					NES_DECL_HOOK( HBlank  );
 
-					NES_DECL_ACCESSOR( Chr_0000 );
-					NES_DECL_ACCESSOR( Chr_1000 );
+					NES_DECL_ACCESSOR( Chr );
 
 					NES_DECL_PEEK( 5000 );
 					NES_DECL_PEEK( 6000 );
@@ -228,8 +227,8 @@ namespace Nes
 						uint scale;
 						uint count;
 						uint flip;
-						ClockUnits::A12<A12> a12;
-						ClockUnits::M2<M2> m2;
+						Timer::A12<A12> a12;
+						Timer::M2<M2> m2;
 					};
 
 					Regs regs;

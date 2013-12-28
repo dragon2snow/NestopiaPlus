@@ -74,7 +74,7 @@ namespace Nes
 					};
 
 					uint prgSelect;
-					ClockUnits::A12<Irq,Irq::CLOCK_FILTER> irq;
+					Timer::A12<Irq,Irq::CLOCK_FILTER> irq;
 				};
 			}
 		}

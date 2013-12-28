@@ -297,6 +297,10 @@ namespace Nestopia
 					{
 						settings.favoredSystem = Nes::Machine::FAVORED_FAMICOM;
 					}
+					else if (favored == L"dendy")
+					{
+						settings.favoredSystem = Nes::Machine::FAVORED_DENDY;
+					}
 					else
 					{
 						settings.favoredSystem = Nes::Machine::FAVORED_NES_NTSC;
@@ -368,6 +372,7 @@ namespace Nestopia
 				(
 					settings.favoredSystem == Nes::Machine::FAVORED_NES_PAL ? "nes-pal"    :
 					settings.favoredSystem == Nes::Machine::FAVORED_FAMICOM ? "famicom"    :
+					settings.favoredSystem == Nes::Machine::FAVORED_DENDY   ? "dendy"      :
                                                                               "nes-ntsc"
 				);
 
@@ -437,6 +442,7 @@ namespace Nestopia
 			dialog.RadioButton( IDC_PREFERENCES_FAVORED_NES_NTSC ).Check( settings.favoredSystem == Nes::Machine::FAVORED_NES_NTSC );
 			dialog.RadioButton( IDC_PREFERENCES_FAVORED_NES_PAL  ).Check( settings.favoredSystem == Nes::Machine::FAVORED_NES_PAL  );
 			dialog.RadioButton( IDC_PREFERENCES_FAVORED_FAMICOM  ).Check( settings.favoredSystem == Nes::Machine::FAVORED_FAMICOM  );
+			dialog.RadioButton( IDC_PREFERENCES_FAVORED_DENDY    ).Check( settings.favoredSystem == Nes::Machine::FAVORED_DENDY    );
 
 			dialog.CheckBox( IDC_PREFERENCES_FAVORED_ALWAYS_ASK ).Check( settings.alwaysAskSystem );
 
@@ -572,6 +578,7 @@ namespace Nestopia
 			dialog.RadioButton( IDC_PREFERENCES_FAVORED_NES_NTSC ).Check( true  );
 			dialog.RadioButton( IDC_PREFERENCES_FAVORED_NES_PAL  ).Check( false );
 			dialog.RadioButton( IDC_PREFERENCES_FAVORED_FAMICOM  ).Check( false );
+			dialog.RadioButton( IDC_PREFERENCES_FAVORED_DENDY    ).Check( false );
 
 			dialog.CheckBox( IDC_PREFERENCES_FAVORED_ALWAYS_ASK ).Check( false );
 
@@ -611,6 +618,7 @@ namespace Nestopia
 				(
 					dialog.RadioButton( IDC_PREFERENCES_FAVORED_NES_PAL ).Checked() ? Nes::Machine::FAVORED_NES_PAL :
 					dialog.RadioButton( IDC_PREFERENCES_FAVORED_FAMICOM ).Checked() ? Nes::Machine::FAVORED_FAMICOM :
+					dialog.RadioButton( IDC_PREFERENCES_FAVORED_DENDY   ).Checked() ? Nes::Machine::FAVORED_DENDY   :
                                                                                       Nes::Machine::FAVORED_NES_NTSC
 				);
 

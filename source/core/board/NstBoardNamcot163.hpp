@@ -170,7 +170,7 @@ namespace Nes
 					NES_DECL_POKE( D800 );
 					NES_DECL_POKE( F800 );
 
-					ClockUnits::M2<Irq> irq;
+					Timer::M2<Irq> irq;
 					Sound sound;
 				};
 			}

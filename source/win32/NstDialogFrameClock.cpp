@@ -136,6 +136,8 @@ namespace Nestopia
 										DEFAULT_ALT_SPEED
 				);
 
+				settings.noAltSpeedSound = speed["alt-speed-sound"].No();
+
 				settings.useDefaultSpeed = !speed["use-native-speed"].No();
 			}
 		}
@@ -165,6 +167,7 @@ namespace Nestopia
 
 				speed[ "default-speed"    ].Int() = settings.speed;
 				speed[ "alt-speed"        ].Int() = settings.altSpeed;
+				speed[ "alt-speed-sound"  ].YesNo() = !settings.noAltSpeedSound;
 				speed[ "use-native-speed" ].YesNo() = settings.useDefaultSpeed;
 			}
 
@@ -202,6 +205,7 @@ namespace Nestopia
 			dialog.RadioButton ( IDC_TIMING_AUTO_FRAME_SKIP        ).Check        ( settings.autoFrameSkip                 );
 			dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).Check        ( settings.vsync                         );
 			dialog.CheckBox    ( IDC_TIMING_TRIPLE_BUFFERING       ).Check        ( settings.tripleBuffering               );
+			dialog.CheckBox    ( IDC_TIMING_ALT_SPEED_NOSOUND      ).Check        ( settings.noAltSpeedSound               );
 			dialog.CheckBox    ( IDC_TIMING_REWINDER               ).Check        ( settings.rewinder                      );
 			dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).Check        ( settings.useDefaultSpeed               );
 			dialog.CheckBox    ( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Check        ( settings.useDefaultRewindSpeed         );
@@ -296,6 +300,7 @@ namespace Nestopia
 				dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).Check  ( false  );
 				dialog.CheckBox    ( IDC_TIMING_TRIPLE_BUFFERING       ).Check  ( !modernGPU || System::Info::GetCpuSpeed() <= MAX_MHZ_TRIPLE_BUFFERING_ENABLE );
 				dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).Check  ( true  );
+				dialog.CheckBox    ( IDC_TIMING_ALT_SPEED_NOSOUND      ).Check  ( false );
 				dialog.CheckBox    ( IDC_TIMING_REWINDER               ).Check  ( false );
 				dialog.CheckBox    ( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Check  ( true  );
 				dialog.CheckBox    ( IDC_TIMING_REWINDER_NOSOUND       ).Check  ( false );
@@ -327,6 +332,7 @@ namespace Nestopia
 				settings.rewinder              = dialog.CheckBox    ( IDC_TIMING_REWINDER               ).Checked();
 				settings.useDefaultSpeed       = dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).Checked();
 				settings.useDefaultRewindSpeed = dialog.CheckBox    ( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Checked();
+				settings.noAltSpeedSound       = dialog.CheckBox    ( IDC_TIMING_ALT_SPEED_NOSOUND      ).Checked();
 				settings.noRewindSound         = dialog.CheckBox    ( IDC_TIMING_REWINDER_NOSOUND       ).Checked();
 				settings.pfCounter             = dialog.CheckBox    ( IDC_TIMING_PFC                    ).Checked();
 				settings.speed                 = dialog.Slider      ( IDC_TIMING_SPEED                  ).Position();

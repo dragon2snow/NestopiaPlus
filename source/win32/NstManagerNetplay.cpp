@@ -447,7 +447,7 @@ namespace Nestopia
 				static const HeapString droppedOut( HeapString() << ") " << Resource::String(IDS_TEXT_DROPPEDOUT) );
 
 				if (nick && *nick)
-					Io::Screen() << player << playerNum << " (" << HeapString().Import(nick,true) << droppedOut;
+					Io::Screen() << player << playerNum << " (" << HeapString().Import(nick) << droppedOut;
 			}
 
 			static void WINAPI ChatRecieve(char* nick,char* text)
@@ -455,7 +455,7 @@ namespace Nestopia
 				static const HeapString says( HeapString() << ' ' << Resource::String(IDS_TEXT_SAYS) << ": " );
 
 				if (nick && *nick && text && *text)
-					Io::Screen() << HeapString().Import(nick,true) << says << HeapString().Import(text,true);
+					Io::Screen() << HeapString().Import(nick) << says << HeapString().Import(text);
 			}
 		};
 

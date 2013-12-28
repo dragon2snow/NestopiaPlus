@@ -22,7 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 #include "NstBoard.hpp"
 #include "NstBoardUnlTf1201.hpp"
 
@@ -173,7 +173,7 @@ namespace Nes
 
 					ppu.Update();
 
-					if (ppu.GetScanline() < 240)
+					if (ppu.GetScanline() != Ppu::SCANLINE_VBLANK)
 						irq.unit.count -= 8;
 				}
 

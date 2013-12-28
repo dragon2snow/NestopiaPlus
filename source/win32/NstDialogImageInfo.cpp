@@ -177,6 +177,7 @@ namespace Nestopia
 					profile.system.type == Profile::System::NES_PAL_A     ? IDS_TEXT_NES_PAL_A    :
 					profile.system.type == Profile::System::NES_PAL_B     ? IDS_TEXT_NES_PAL_B    :
 					profile.system.type == Profile::System::FAMICOM       ? IDS_TEXT_FAMICOM      :
+					profile.system.type == Profile::System::DENDY         ? IDS_TEXT_DENDY        :
 																			IDS_TEXT_NES_NTSC
 				);
 

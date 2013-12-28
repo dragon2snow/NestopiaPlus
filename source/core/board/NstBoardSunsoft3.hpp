@@ -29,7 +29,7 @@
 #pragma once
 #endif
 
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 
 namespace Nes
 {
@@ -65,7 +65,7 @@ namespace Nes
 						uint toggle;
 					};
 
-					ClockUnits::M2<Irq> irq;
+					Timer::M2<Irq> irq;
 				};
 			}
 		}

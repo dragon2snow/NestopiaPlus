@@ -45,8 +45,6 @@ namespace Nestopia
 
 		class Video : Manager
 		{
-			typedef DirectX::Direct2D::Adapter::Modes::const_iterator Mode;
-
 		public:
 
 			typedef Window::Point Point;
@@ -54,13 +52,6 @@ namespace Nestopia
 
 			Video(Window::Custom&,Window::Menu&,Emulator&,const Paths&,const Configuration&);
 			~Video();
-
-			enum
-			{
-				NES_WIDTH = Nes::Video::Output::WIDTH,
-				NES_HEIGHT = Nes::Video::Output::HEIGHT,
-				NTSC_WIDTH = Nes::Video::Output::NTSC_WIDTH
-			};
 
 			void StartEmulation();
 			void StopEmulation();
@@ -75,14 +66,11 @@ namespace Nestopia
 		private:
 
 			typedef Application::Instance Instance;
+			typedef DirectX::Direct2D::Adapter::Modes::const_iterator Mode;
 
 			enum
 			{
-				SCREEN_MATCHED = 8,
 				SCALE_TOLERANCE = 16,
-				DEFAULT_BPP = 16,
-				MIN_DIALOG_WIDTH = 640,
-				MIN_DIALOG_HEIGHT = 480,
 				STATUSBAR_WIDTH = 11,
 				SCREEN_TEXT_DURATION = 2250
 			};

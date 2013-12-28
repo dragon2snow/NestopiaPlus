@@ -299,38 +299,53 @@ namespace Nes
 
 		Result Tracker::Execute
 		(
-			Machine& emulator,
+			Machine& machine,
 			Video::Output* const video,
 			Sound::Output* const sound,
 			Input::Controllers* input
 		)
 		{
-			if (emulator.Is(Api::Machine::ON))
+			if (machine.Is(Api::Machine::ON))
 			{
 				++frame;
 
-				if (emulator.Is(Api::Machine::GAME))
+				try
 				{
-					if (rewinder)
+					if (machine.Is(Api::Machine::GAME))
 					{
-						rewinder->Execute( video, sound, input );
-						return RESULT_OK;
-					}
-					else if (movie)
-					{
-						if (!movie->Execute())
+						if (rewinder)
 						{
-							StopMovie();
+							rewinder->Execute( video, sound, input );
+							return RESULT_OK;
 						}
-						else if (movie->IsPlaying())
+						else if (movie)
 						{
-							input = NULL;
+							if (!movie->Execute())
+							{
+								StopMovie();
+							}
+							else if (movie->IsPlaying())
+							{
+								input = NULL;
+							}
 						}
 					}
-				}
 
-				emulator.Execute( video, sound, input );
-				return RESULT_OK;
+					machine.Execute( video, sound, input );
+					return RESULT_OK;
+				}
+				catch (Result result)
+				{
+					return machine.PowerOff( result );
+				}
+				catch (const std::bad_alloc&)
+				{
+					return machine.PowerOff( RESULT_ERR_OUT_OF_MEMORY );
+				}
+				catch (...)
+				{
+					return machine.PowerOff( RESULT_ERR_GENERIC );
+				}
 			}
 			else
 			{

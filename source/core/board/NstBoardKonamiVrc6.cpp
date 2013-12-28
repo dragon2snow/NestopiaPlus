@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstBoard.hpp"
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 #include "NstBoardKonamiVrc4.hpp"
 #include "NstBoardKonamiVrc6.hpp"
 
@@ -169,7 +169,8 @@ namespace Nes
 
 				bool Vrc6::Sound::UpdateSettings()
 				{
-					output = GetVolume(EXT_VRC6);
+					uint volume = GetVolume(EXT_VRC6);
+					output = IsMuted() ? 0 : volume;
 
 					GetOscillatorClock( rate, fixed );
 
@@ -180,7 +181,7 @@ namespace Nes
 
 					dcBlocker.Reset();
 
-					return output;
+					return volume;
 				}
 
 				void Vrc6::SubLoad(State::Loader& state,const dword baseChunk)

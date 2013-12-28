@@ -106,9 +106,9 @@ namespace Nes
 				chr.SwapBank<SIZE_8K,0x0000>( data & ~ce.mask );
 
 				if ((data & ce.mask) == ce.state)
-					chr.ResetAccessors();
+					chr.ResetAccessor();
 				else
-					chr.SetAccessors( this, &CnRom::Access_ChrOpenBus, &CnRom::Access_ChrOpenBus );
+					chr.SetAccessor( this, &CnRom::Access_ChrOpenBus );
 			}
 		}
 	}

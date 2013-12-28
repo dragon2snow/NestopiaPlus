@@ -102,6 +102,16 @@ namespace Nestopia
 			return dialog->GetSetting(Window::Paths::AUTO_IMPORT_STATE_SLOTS);
 		}
 
+		bool Paths::AutoLoadCheatsEnabled() const
+		{
+			return dialog->GetSetting(Window::Paths::CHEATS_AUTO_LOAD);
+		}
+
+		bool Paths::AutoSaveCheatsEnabled() const
+		{
+			return dialog->GetSetting(Window::Paths::CHEATS_AUTO_SAVE);
+		}
+
 		bool Paths::UseStateCompression() const
 		{
 			return dialog->GetSetting(Window::Paths::COMPRESS_STATES);
@@ -372,6 +382,16 @@ namespace Nestopia
 			}
 
 			return save;
+		}
+
+		Path Paths::GetCheatPath() const
+		{
+			return dialog->GetDirectory( Window::Paths::DIR_CHEATS );
+		}
+
+		Path Paths::GetCheatPath(const Path& image) const
+		{
+			return Path( dialog->GetDirectory( Window::Paths::DIR_CHEATS ), image.Target().File(), L"xml" );
 		}
 
 		Path Paths::GetPatchPath(const Path& image,const File::Type type) const

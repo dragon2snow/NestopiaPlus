@@ -42,8 +42,7 @@ namespace Nes
 					selector[1] = 0;
 					selector[0] = 0;
 
-					chr.SetAccessor( 0, this, &Sh2::Access_Chr_0000 );
-					chr.SetAccessor( 1, this, &Sh2::Access_Chr_1000 );
+					chr.SetAccessor( this, &Sh2::Access_Chr );
 
 					Mmc3::SubReset( hard );
 				}
@@ -80,50 +79,31 @@ namespace Nes
 				#pragma optimize("", on)
 				#endif
 
+				inline void Sh2::SwapChr(uint address) const
+				{
+					chr.Source( banks.chr[selector[address >> 12]] == 0 ).SwapBank<SIZE_4K>( address, banks.chr[selector[address >> 12]] >> 2 );
+				}
+
 				void NST_FASTCALL Sh2::UpdateChr(uint,uint) const
 				{
-					SwapChrLo();
-					SwapChrHi();
+					SwapChr( 0x0000 );
+					SwapChr( 0x1000 );
 				}
 
-				void Sh2::SwapChrLo() const
-				{
-					chr.Source( banks.chr[selector[0]] == 0 ).SwapBank<SIZE_4K,0x0000>( banks.chr[selector[0]] >> 2 );
-				}
-
-				void Sh2::SwapChrHi() const
-				{
-					chr.Source( banks.chr[selector[1]] == 0 ).SwapBank<SIZE_4K,0x1000>( banks.chr[selector[1]] >> 2 );
-				}
-
-				NES_ACCESSOR(Sh2,Chr_0000)
+				NES_ACCESSOR(Sh2,Chr)
 				{
 					const uint data = chr.Peek( address );
+					uint bank;
 
 					switch (address & 0xFF8)
 					{
-						case 0xFD0: selector[0] = 0; break;
-						case 0xFE8: selector[0] = 2; break;
+						case 0xFD0: bank = (address >> 10 & 0x4) | 0x0; break;
+						case 0xFE8: bank = (address >> 10 & 0x4) | 0x2; break;
 						default: return data;
 					}
 
-					SwapChrLo();
-
-					return data;
-				}
-
-				NES_ACCESSOR(Sh2,Chr_1000)
-				{
-					const uint data = chr.Peek( address );
-
-					switch (address & 0xFF8)
-					{
-						case 0xFD0: selector[1] = 4; break;
-						case 0xFE8: selector[1] = 6; break;
-						default: return data;
-					}
-
-					SwapChrHi();
+					selector[address >> 12] = bank;
+					SwapChr( address & 0x1000 );
 
 					return data;
 				}

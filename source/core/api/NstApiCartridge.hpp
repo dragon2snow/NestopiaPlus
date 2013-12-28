@@ -343,6 +343,10 @@ namespace Nes
 						*/
 						FAMICOM = Core::SYSTEM_FAMICOM,
 						/**
+						* Dendy console (clone).
+						*/
+						DENDY = Core::SYSTEM_DENDY,
+						/**
 						* Vs UniSystem arcade.
 						*/
 						VS_UNISYSTEM = Core::SYSTEM_VS_UNISYSTEM,
@@ -368,7 +372,11 @@ namespace Nes
 						/**
 						* RP2A07 PAL CPU.
 						*/
-						CPU_RP2A07 = Core::CPU_RP2A07
+						CPU_RP2A07 = Core::CPU_RP2A07,
+						/**
+						* Dendy CPU (clone).
+						*/
+						CPU_DENDY = Core::CPU_DENDY
 					};
 
 					/**
@@ -435,7 +443,11 @@ namespace Nes
 						/**
 						* RP2C07 PAL PPU.
 						*/
-						PPU_RP2C07 = Core::PPU_RP2C07
+						PPU_RP2C07 = Core::PPU_RP2C07,
+						/**
+						* Dendy PPU (clone).
+						*/
+						PPU_DENDY = Core::PPU_DENDY
 					};
 
 					/**

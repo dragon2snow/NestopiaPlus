@@ -64,6 +64,11 @@ namespace Nes
 						NMT_CONTROLLED
 					};
 
+					enum
+					{
+						NMPR = 100
+					};
+
 				private:
 
 					enum NmtInit
@@ -87,11 +92,6 @@ namespace Nes
 						CRM_8,
 						CRM_16,
 						CRM_32
-					};
-
-					enum
-					{
-						NMPR = 100
 					};
 
 					template<byte MPR,word PROM,word CROM,byte NVWRAM,byte WRAM,Cram CRAM,NmtInit NMT,byte UNIQUE>
@@ -305,7 +305,7 @@ namespace Nes
 						BMC_Y2K_64IN1              = MakeId< NMPR, 1024,  512,  0,  0, CRM_0,  NMT_V,  0 >::ID,
 						// Bootlegs
 						BTL_2708                   = MakeId<  103,  128,    0,  0, 16, CRM_8,  NMT_V,  0 >::ID,
-						BTL_6035052                = MakeId< NMPR,  512,  256,  0,  0, CRM_0,  NMT_X,  0 >::ID,
+						BTL_6035052                = MakeId<  238,  512,  256,  0,  0, CRM_0,  NMT_X,  0 >::ID,
 						BTL_AISENSHINICOL          = MakeId<   42,  128,    0,  0,  0, CRM_8,  NMT_X,  0 >::ID,
 						BTL_AX5705                 = MakeId< NMPR,  128,  256,  0,  0, CRM_0,  NMT_X,  0 >::ID,
 						BTL_DRAGONNINJA            = MakeId<  222,  128,  256,  0,  0, CRM_0,  NMT_X,  0 >::ID,
@@ -328,7 +328,7 @@ namespace Nes
 						CAMERICA_ALGNV11           = MakeId<   71,  256,    0,  0,  0, CRM_8,  NMT_X,  2 >::ID,
 						CAMERICA_ALGQV11           = MakeId<  232,  256,    0,  0,  0, CRM_8,  NMT_X,  1 >::ID,
 						CAMERICA_GOLDENFIVE        = MakeId<  104, 2048,    0,  0,  0, CRM_8,  NMT_X,  0 >::ID,
-						// Camerica
+						// Caltron
 						CALTRON_6IN1               = MakeId<   41,  256,  128,  0,  0, CRM_0,  NMT_V,  0 >::ID,
 						// C&E
 						CNE_SHLZ                   = MakeId<  240,  512,  128,  8,  0, CRM_0,  NMT_X,  0 >::ID,
@@ -346,6 +346,9 @@ namespace Nes
 						FUTUREMEDIA_STD            = MakeId<  117,  256,  256,  0,  0, CRM_0,  NMT_X,  0 >::ID,
 						// Gouder
 						GOUDER_37017               = MakeId<  208,  128,  256,  0,  0, CRM_0,  NMT_X,  0 >::ID,
+						// Henggedianzi
+						HENGEDIANZI_STD            = MakeId<  177, 1024,    8,  8,  0, CRM_0,  NMT_V,  0 >::ID,
+						HENGEDIANZI_XJZB           = MakeId<  179,  512,    8,  8,  0, CRM_0,  NMT_V,  0 >::ID,
 						// HES
 						HES_STD                    = MakeId<  113,  256,  128,  0,  0, CRM_0,  NMT_H,  0 >::ID,
 						// Hosenkan
@@ -521,11 +524,13 @@ namespace Nes
 						TXC_POLICEMAN              = MakeId<   36,  512,  128,  0,  0, CRM_0,  NMT_X,  0 >::ID,
 						TXC_TW                     = MakeId<  189,  128,  256,  0,  0, CRM_0,  NMT_X,  0 >::ID,
 						// Unlicensed
+						UNL_A9746                  = MakeId<  219,  128,  256,  0,  0, CRM_0,  NMT_X,  0 >::ID,
 						UNL_CC21                   = MakeId< NMPR,   32,   16,  0,  0, CRM_0,  NMT_Z,  0 >::ID,
 						UNL_EDU2000                = MakeId< NMPR, 1024,    0, 32,  0, CRM_8,  NMT_Z,  0 >::ID,
 						UNL_KINGOFFIGHTERS96       = MakeId<  187,  512,  512,  0,  0, CRM_0,  NMT_X,  0 >::ID,
 						UNL_KINGOFFIGHTERS97       = MakeId< NMPR,  512,  256,  0,  0, CRM_0,  NMT_X,  1 >::ID,
 						UNL_MORTALKOMBAT2          = MakeId<   91,  256,  512,  0,  0, CRM_0,  NMT_X,  0 >::ID,
+						UNL_N625092                = MakeId<  221, 1024,    8,  0,  0, CRM_0,  NMT_V,  0 >::ID,
 						UNL_SUPERFIGHTER3          = MakeId<  197,  512,  512,  0,  0, CRM_0,  NMT_X,  0 >::ID,
 						UNL_TF1201                 = MakeId< NMPR,  256,  256,  0,  0, CRM_0,  NMT_V,  0 >::ID,
 						UNL_WORLDHERO              = MakeId<   27,  128,  512,  0,  0, CRM_0,  NMT_X,  0 >::ID,
@@ -569,6 +574,7 @@ namespace Nes
 					Type();
 					Type(Id,Ram&,Ram&,Nmt,bool,bool);
 
+					uint  GetMapper() const;
 					dword GetMaxPrg() const;
 					dword GetMaxChr() const;
 					uint  GetWram() const;

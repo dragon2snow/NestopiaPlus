@@ -27,6 +27,7 @@
 
 #pragma once
 
+#include <set>
 #include "NstWindowDialog.hpp"
 #include "../core/api/NstApiCheats.hpp"
 
@@ -41,148 +42,55 @@ namespace Nestopia
 			Cheats(Managers::Emulator&,const Configuration&,const Managers::Paths&);
 			~Cheats();
 
-			typedef Nes::Cheats::Code Mem;
-
-			void Save(Configuration&) const;
-			uint ClearTemporaryCodes();
+			enum CodesType
+			{
+				PERMANENT_CODES,
+				TEMPORARY_CODES
+			};
 
 			enum
 			{
 				MAX_CODES = 0xFFFF
 			};
 
-		private:
+			typedef Nes::Cheats::Code NesCode;
 
-			struct Handlers;
-
-			class CodeDialog : public Dialog
+			struct Code
 			{
-				HWND listView;
-
-			public:
-
-				template<typename T,typename U,typename V>
-				inline CodeDialog(T*,const U&,const V&);
-
-				inline void Open(HWND);
-				inline HWND GetListView() const;
-			};
-
-			class List
-			{
-			public:
-
-				List(CodeDialog&,const Managers::Paths&);
-				~List();
-
-				void Add(const Mem&,Generic::Stream);
-				void Import(const Path&);
-				void Export(const Path&) const;
-				void InitDialog(Dialog&,uint);
-
-			private:
+				Code();
 
 				enum
 				{
-					ADD,
-					REMOVE,
-					IMPORT,
-					EXPORT,
-					CLEAR,
-					NUM_CONTROLS
+					NO_COMPARE = 0xFFFF
 				};
 
-				struct Code
-				{
-					explicit Code(const Mem&);
+				typedef String::Stack<8,wchar_t> GenieCode;
 
-					void CheckDesc();
+				NesCode ToNesCode() const;
+				void FromNesCode(const NesCode&);
+				GenieCode ToGenieCode() const;
 
-					bool enabled;
-					Mem mem;
-					HeapString desc;
+				bool operator < (const Code&) const;
 
-					bool operator == (uint address) const
-					{
-						return mem.address == address;
-					}
-				};
-
-				struct Codes : Collection::Vector<Code>
-				{
-					~Codes();
-
-					void Load(const Configuration&);
-					void Save(Configuration&) const;
-					void Clear();
-					Code& Add(const Mem&);
-				};
-
-				class ListView : public Control::ListView
-				{
-				public:
-
-					ListView(List* const,Dialog&,uint);
-					void Init(Control::ListView);
-
-					Control::Generic controls[NUM_CONTROLS];
-
-				private:
-
-					Control::NotificationHandler notificationHandler;
-				};
-
-				void AddToDialog(const Code&) const;
-				static bool Import(Codes&,const Path&);
-
-				ibool OnCmdAdd    (Param&);
-				ibool OnCmdRemove (Param&);
-				ibool OnCmdExport (Param&);
-				ibool OnCmdImport (Param&);
-				ibool OnCmdClear  (Param&);
-
-				void OnKeyDown     (const NMHDR&);
-				void OnItemChanged (const NMHDR&);
-				void OnInsertItem  (const NMHDR&);
-				void OnDeleteItem  (const NMHDR&);
-
-				Codes codes;
-				CodeDialog& codeDialog;
-				const Managers::Paths& paths;
-				ListView* listView;
-
-			public:
-
-				void Clear()
-				{
-					codes.Clear();
-				}
-
-				void Load(const Configuration& cfg)
-				{
-					codes.Load( cfg );
-				}
-
-				void Save(Configuration& cfg) const
-				{
-					codes.Save( cfg );
-				}
-
-				uint Size() const
-				{
-					return codes.Size();
-				}
-
-				const Code& operator [] (uint i) const
-				{
-					return codes[i];
-				}
-
-				HWND GetHandle() const
-				{
-					return listView->GetHandle();
-				}
+				HeapString description;
+				uint crc;
+				ushort address;
+				ushort compare;
+				uchar value;
+				bool enabled;
 			};
+
+			typedef std::set<Code> Codes;
+
+			void Open();
+			void Save(Configuration&) const;
+			void Flush();
+			bool Load(const Path&);
+			bool Save(const Path&) const;
+
+		private:
+
+			class MainDialog;
 
 			struct Searcher
 			{
@@ -196,76 +104,24 @@ namespace Nestopia
 				ushort filter;
 				uchar a;
 				uchar b;
-				bool hex;
 				uchar ram[Nes::Cheats::RAM_SIZE];
 			};
 
-			void AddSearchEntry(Control::ListView,uint) const;
-			void UpdateSearchList() const;
-			void UpdateHexView(bool);
-			void UpdateInput() const;
+			static bool Import(Codes&,const Path&);
+			static bool Export(const Codes&,const Path&);
 
-			void OnCodeItemChanged (const NMHDR&);
-
-			ibool OnInitMainDialog    (Param&);
-			ibool OnInitCodeDialog    (Param&);
-			ibool OnDestroyCodeDialog (Param&);
-			ibool OnDropFiles         (Param&);
-			ibool OnCodeCmdReset      (Param&);
-			ibool OnCodeCmdHex        (Param&);
-			ibool OnCodeCmdSubmit     (Param&);
-			ibool OnCodeCmdValidate   (Param&);
-			ibool OnCodeCmdType       (Param&);
-			ibool OnCodeSearchType    (Param&);
-
-			uint GetSearchValue (uint) const;
-			void SetSearchValue (uint,uint) const;
-			bool GetRawCode     (Mem&) const;
-			void SetRawCode     (const Mem&) const;
-			bool GetGenieCode   (Mem&) const;
-			bool GetRockyCode   (Mem&) const;
-
-			Dialog mainDialog;
-			CodeDialog codeDialog;
-			List staticList;
-			List tempList;
+			const Managers::Paths& paths;
 			Managers::Emulator& emulator;
+			Codes codes[2];
 			Searcher searcher;
-			Control::NotificationHandler searcherNotificationHandler;
+			bool showHexMainDialog;
+			bool showHexSubDialogs;
 
 		public:
 
-			void Open()
+			const Codes& GetCodes(CodesType type) const
 			{
-				mainDialog.Open();
-			}
-
-			enum
-			{
-				STATIC_CODES,
-				TEMP_CODES,
-				NUM_CODE_TYPES
-			};
-
-			void ResetRamSearch()
-			{
-				searcher.filter = Searcher::NO_FILTER;
-				searcher.a = searcher.b = 0x00;
-			}
-
-			uint GetNumCodes(uint type) const
-			{
-				return (type ? tempList : staticList).Size();
-			}
-
-			bool CodeEnabled(uint type,uint i) const
-			{
-				return (type ? tempList : staticList)[i].enabled;
-			}
-
-			const Mem& GetCode(uint type,uint i) const
-			{
-				return (type ? tempList : staticList)[i].mem;
+				return codes[type];
 			}
 		};
 	}

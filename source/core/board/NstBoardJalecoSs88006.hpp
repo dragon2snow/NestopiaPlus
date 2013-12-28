@@ -101,7 +101,7 @@ namespace Nes
 						uint latch;
 					};
 
-					ClockUnits::M2<Irq> irq;
+					Timer::M2<Irq> irq;
 					uint reg;
 					Sound::Player* const sound;
 				};

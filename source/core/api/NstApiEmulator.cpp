@@ -22,7 +22,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <new>
 #include "../NstMachine.hpp"
 #include "NstApiEmulator.hpp"
 
@@ -55,22 +54,7 @@ namespace Nes
 			Core::Input::Controllers* input
 		)   throw()
 		{
-			try
-			{
-				return machine.tracker.Execute( machine, video, sound, input );
-			}
-			catch (Result result)
-			{
-				return machine.PowerOff( result );
-			}
-			catch (std::bad_alloc&)
-			{
-				return machine.PowerOff( RESULT_ERR_OUT_OF_MEMORY );
-			}
-			catch (...)
-			{
-				return machine.PowerOff( RESULT_ERR_GENERIC );
-			}
+			return machine.tracker.Execute( machine, video, sound, input );
 		}
 
 		ulong Emulator::Frame() const throw()

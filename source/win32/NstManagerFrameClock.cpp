@@ -29,6 +29,7 @@
 #include "NstManager.hpp"
 #include "NstDialogFrameClock.hpp"
 #include "NstManagerFrameClock.hpp"
+#include "../core/api/NstApiSound.hpp"
 #include "../core/api/NstApiRewinder.hpp"
 
 namespace Nestopia
@@ -125,9 +126,12 @@ namespace Nestopia
 
 					settings.autoFrameSkip = (dialog->UseAutoFrameSkip() || dialog->GetAltSpeed() > emulator.GetDefaultSpeed());
 					emulator.SetSpeed( dialog->GetAltSpeed() );
+					Nes::Sound(emulator).Mute( dialog->NoAltSpeedSound() );
 					break;
 
 				case Emulator::EVENT_SPEEDING_OFF:
+
+					Nes::Sound(emulator).Mute( false );
 
 					if (dialog->UseDefaultRewindSpeed() || Rewinder(emulator).GetDirection() == Rewinder::FORWARD)
 					{

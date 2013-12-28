@@ -47,7 +47,7 @@ namespace Nes
 		: nmt(NMT_DEFAULT), battery(false), wramAuto(false) {}
 
 		Cartridge::Cartridge(Context& context)
-		: Image(CARTRIDGE), board(NULL), vs(NULL)
+		: Image(CARTRIDGE), board(NULL), vs(NULL), favoredSystem(context.favoredSystem)
 		{
 			try
 			{
@@ -282,11 +282,11 @@ namespace Nes
 					return RESULT_ERR_UNSUPPORTED_MAPPER;
 
 				if (profile.board.type.empty())
-				{
-					const std::wstring tmp( b.name, b.name + std::strlen(b.name) );
-					profile.board.type = tmp;
-				}
+					profile.board.type = std::wstring( b.name, b.name + std::strlen(b.name) );
 			}
+
+			if (profile.board.mapper == Profile::Board::NO_MAPPER && b.type.GetMapper() != Boards::Board::Type::NMPR)
+				profile.board.mapper = b.type.GetMapper();
 
 			for (uint i=0; i < 2; ++i)
 			{
@@ -321,7 +321,7 @@ namespace Nes
 						{
 							Profile::Board::Ram ram;
 							ram.size = size;
-							ram.battery = (j == 0);
+							ram.battery = (i == 0 && j == 0 && b.wramBattery);
 							rams.push_back( ram );
 						}
 					}
@@ -422,8 +422,15 @@ namespace Nes
 				case Profile::System::NES_PAL:
 				case Profile::System::NES_PAL_A:
 				case Profile::System::NES_PAL_B:
+				case Profile::System::DENDY:
 
 					return REGION_PAL;
+
+				case Profile::System::NES_NTSC:
+				case Profile::System::FAMICOM:
+
+					if (favoredSystem == FAVORED_DENDY)
+						return REGION_PAL;
 
 				default:
 
@@ -435,6 +442,27 @@ namespace Nes
 		{
 			if (region == Cartridge::GetDesiredRegion())
 			{
+				if (favoredSystem == FAVORED_DENDY && region == REGION_PAL)
+				{
+					switch (profile.system.type)
+					{
+						case Profile::System::NES_NTSC:
+						case Profile::System::NES_PAL:
+						case Profile::System::NES_PAL_A:
+						case Profile::System::NES_PAL_B:
+						case Profile::System::FAMICOM:
+						case Profile::System::DENDY:
+
+							if (cpu)
+								*cpu = CPU_DENDY;
+
+							if (ppu)
+								*ppu = PPU_DENDY;
+
+							return SYSTEM_DENDY;
+					}
+				}
+
 				if (cpu)
 					*cpu = static_cast<CpuModel>(profile.system.cpu);
 

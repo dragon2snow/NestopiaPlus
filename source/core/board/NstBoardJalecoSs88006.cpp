@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstBoard.hpp"
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 #include "../NstSoundPlayer.hpp"
 #include "NstBoardJalecoSs88006.hpp"
 

@@ -356,9 +356,19 @@ namespace Nes
 					case Context::SYSTEM_NTSC:
 
 						if (favoredSystem == FAVORED_FAMICOM)
+						{
 							profile.system.type = Profile::System::FAMICOM;
+						}
+						if (favoredSystem == FAVORED_DENDY)
+						{
+							profile.system.type = Profile::System::DENDY;
+							profile.system.cpu = Profile::System::CPU_DENDY;
+							profile.system.ppu = Profile::System::PPU_DENDY;
+						}
 						else
+						{
 							profile.system.type = Profile::System::NES_NTSC;
+						}
 						break;
 
 					default:
@@ -370,7 +380,7 @@ namespace Nes
 							profile.system.type = Profile::System::FAMICOM;
 							break;
 						}
-						else if (favoredSystem != FAVORED_NES_PAL)
+						else if (favoredSystem != FAVORED_NES_PAL && favoredSystem != FAVORED_DENDY)
 						{
 							profile.system.type = Profile::System::NES_NTSC;
 							break;
@@ -378,9 +388,18 @@ namespace Nes
 
 					case Context::SYSTEM_PAL:
 
-						profile.system.type = Profile::System::NES_PAL;
-						profile.system.cpu = Profile::System::CPU_RP2A07;
-						profile.system.ppu = Profile::System::PPU_RP2C07;
+						if (favoredSystem == FAVORED_DENDY)
+						{
+							profile.system.type = Profile::System::DENDY;
+							profile.system.cpu = Profile::System::CPU_DENDY;
+							profile.system.ppu = Profile::System::PPU_DENDY;
+						}
+						else
+						{
+							profile.system.type = Profile::System::NES_PAL;
+							profile.system.cpu = Profile::System::CPU_RP2A07;
+							profile.system.ppu = Profile::System::PPU_RP2C07;
+						}
 						break;
 				}
 			}

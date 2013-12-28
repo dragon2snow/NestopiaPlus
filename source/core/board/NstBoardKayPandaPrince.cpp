@@ -40,11 +40,13 @@ namespace Nes
 
 				void PandaPrince::SubReset(const bool hard)
 				{
-					exMode = 0;
+					exRegs[0] = 0;
+					exRegs[1] = 0;
+					exRegs[2] = 0;
 
 					Mmc3::SubReset( hard );
 
-					Map( 0x5000U, 0x5FFFU, &PandaPrince::Peek_5000 );
+					Map( 0x5000U, 0x5FFFU, &PandaPrince::Peek_5000, &PandaPrince::Poke_5000 );
 					Map( 0x8000U, 0x9FFFU, &PandaPrince::Poke_8000 );
 				}
 
@@ -56,10 +58,11 @@ namespace Nes
 						{
 							if (chunk == AsciiId<'R','E','G'>::V)
 							{
-								exMode = state.Read8();
+								State::Loader::Data<3> data( state );
 
-								if (exMode != 0xAB && exMode != 0xFF)
-									exMode = 0;
+								exRegs[0] = data[0];
+								exRegs[1] = data[1];
+								exRegs[2] = data[2];
 							}
 
 							state.End();
@@ -74,7 +77,13 @@ namespace Nes
 				void PandaPrince::SubSave(State::Saver& state) const
 				{
 					Mmc3::SubSave( state );
-					state.Begin( AsciiId<'K','P','P'>::V ).Begin( AsciiId<'R','E','G'>::V ).Write8( exMode ).End().End();
+
+					const byte data[] =
+					{
+						exRegs[0], exRegs[1], exRegs[2]
+					};
+
+					state.Begin( AsciiId<'K','P','P'>::V ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
 				}
 
 				#ifdef NST_MSVC_OPTIMIZE
@@ -83,16 +92,15 @@ namespace Nes
 
 				void NST_FASTCALL PandaPrince::UpdatePrg(uint address,uint bank)
 				{
-					if (address == 0x6000)
+					if (address == 0x4000)
 					{
-						if (exMode == 0xAB)
-						{
-							bank = 7;
-						}
-						else if (exMode == 0xFF)
-						{
-							bank = 9;
-						}
+						if (exRegs[0])
+							bank = exRegs[0];
+					}
+					else if (address == 0x6000)
+					{
+						if (exRegs[1])
+							bank = exRegs[1];
 					}
 
 					prg.SwapBank<SIZE_8K>( address, bank );
@@ -100,23 +108,45 @@ namespace Nes
 
 				NES_PEEK(PandaPrince,5000)
 				{
-					return 0x9F;
+					return exRegs[2];
+				}
+
+				NES_POKE_D(PandaPrince,5000)
+				{
+					static const byte lut[] =
+					{
+						0x00, 0x83, 0x42, 0x00
+					};
+
+					exRegs[2] = lut[data & 0x3];
 				}
 
 				NES_POKE_AD(PandaPrince,8000)
 				{
-					if ((address & 0xF003) == 0x8003 && (data == 0xAB || data == 0xFF))
+					if ((address & 0x3) == 0x3)
 					{
-						exMode = data;
+						switch (data)
+						{
+							case 0x28: exRegs[0] = 0x0C; break;
+							case 0x26: exRegs[1] = 0x08; break;
+							case 0xAB: exRegs[1] = 0x07; break;
+							case 0xEC: exRegs[1] = 0x0D; break;
+							case 0xEF: exRegs[1] = 0x0D; break;
+							case 0xFF: exRegs[1] = 0x09; break;
+
+							case 0x20: exRegs[1] = 0x13; break;
+							case 0x29: exRegs[1] = 0x1B; break;
+
+							default:   exRegs[0] = 0x0; exRegs[1] = 0x0; break;
+						}
+					}
+					else if (address & 0x1)
+					{
+						Mmc3::NES_DO_POKE(8001,address,data);
 					}
 					else
 					{
-						exMode = 0;
-
-						if (address & 0x1)
-							Mmc3::NES_DO_POKE(8001,address,data);
-						else
-							Mmc3::NES_DO_POKE(8000,address,data);
+						Mmc3::NES_DO_POKE(8000,address,data);
 					}
 
 					Mmc3::UpdatePrg();

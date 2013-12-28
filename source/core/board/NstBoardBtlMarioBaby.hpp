@@ -67,7 +67,7 @@ namespace Nes
 						: cpu(c) {}
 					};
 
-					ClockUnits::M2<Irq> irq;
+					Timer::M2<Irq> irq;
 				};
 			}
 		}

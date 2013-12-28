@@ -121,6 +121,7 @@ namespace Nes
 			Profile profile;
 			dword prgCrc;
 			File savefile;
+			const FavoredSystem favoredSystem;
 
 		public:
 

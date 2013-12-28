@@ -73,9 +73,7 @@ namespace Nes
 
 					enum
 					{
-						NUM_SQUARES = 2,
-						RP2A03_M2_QUARTER = CLK_NTSC / (240UL * CLK_NTSC_DIV * CPU_RP2A03_CC) * CPU_RP2A03_CC,
-						RP2A07_M2_QUARTER = CLK_PAL  / (200UL * CLK_PAL_DIV  * CPU_RP2A07_CC) * CPU_RP2A07_CC
+						NUM_SQUARES = 2
 					};
 
 					class Square
@@ -90,7 +88,7 @@ namespace Nes
 						NST_SINGLE_CALL void WriteReg1(uint,uint);
 						NST_SINGLE_CALL void WriteReg2(uint,uint);
 
-						NST_SINGLE_CALL void Disable(uint);
+						NST_SINGLE_CALL void Disable(bool);
 						NST_SINGLE_CALL void ClockQuarter();
 						NST_SINGLE_CALL void ClockHalf();
 
@@ -168,9 +166,7 @@ namespace Nes
 					NT_CIRAM_1,
 					NT_EXRAM,
 					NT_FILL,
-					NT_ZERO,
-					AT_FILL,
-					AT_EXRAM
+					NT_ZERO
 				};
 
 			private:
@@ -196,28 +192,26 @@ namespace Nes
 				bool ClockSpliter();
 
 				inline void Update();
+				inline ibool IsPpuSprite8x16() const;
 
 				uint GetExtPattern(uint) const;
 				uint GetSpliterAttribute() const;
 				uint GetSpliterPattern(uint) const;
 
 				template<FetchType>
-				inline uint FetchByte(uint) const;
+				NST_FORCE_INLINE uint FetchByte(uint) const;
 
 				template<FetchType NT>
-				inline uint FetchNt(uint) const;
+				NST_FORCE_INLINE uint FetchNt(uint) const;
 
 				template<FetchType NT>
-				inline uint FetchNtExt(uint);
+				NST_FORCE_INLINE uint FetchNtExt(uint);
 
 				template<FetchType NT>
-				inline uint FetchNtSplit(uint);
+				NST_FORCE_INLINE uint FetchNtSplit(uint);
 
 				template<FetchType NT>
-				inline uint FetchNtExtSplit(uint);
-
-				template<FetchType AT>
-				inline uint FetchAtSplit(uint) const;
+				NST_FORCE_INLINE uint FetchNtExtSplit(uint);
 
 				NES_DECL_HOOK( Cpu     );
 				NES_DECL_HOOK( HActive );
@@ -228,8 +222,6 @@ namespace Nes
 				NES_DECL_ACCESSOR( Nt_ExRam           );
 				NES_DECL_ACCESSOR( Nt_Fill            );
 				NES_DECL_ACCESSOR( Nt_Zero            );
-				NES_DECL_ACCESSOR( At_Fill            );
-				NES_DECL_ACCESSOR( At_ExRam           );
 				NES_DECL_ACCESSOR( NtExt_CiRam_0      );
 				NES_DECL_ACCESSOR( NtExt_CiRam_1      );
 				NES_DECL_ACCESSOR( NtExt_ExRam        );
@@ -238,10 +230,6 @@ namespace Nes
 				NES_DECL_ACCESSOR( NtSplit_CiRam_1    );
 				NES_DECL_ACCESSOR( NtSplit_ExRam      );
 				NES_DECL_ACCESSOR( NtSplit_Fill       );
-				NES_DECL_ACCESSOR( AtSplit_CiRam_0    );
-				NES_DECL_ACCESSOR( AtSplit_CiRam_1    );
-				NES_DECL_ACCESSOR( AtSplit_ExRam      );
-				NES_DECL_ACCESSOR( AtSplit_Fill       );
 				NES_DECL_ACCESSOR( NtExtSplit_CiRam_0 );
 				NES_DECL_ACCESSOR( NtExtSplit_CiRam_1 );
 				NES_DECL_ACCESSOR( NtExtSplit_ExRam   );

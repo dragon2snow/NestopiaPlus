@@ -68,7 +68,7 @@ namespace Nes
 					};
 
 					byte regs[8];
-					ClockUnits::M2<Irq> irq;
+					Timer::M2<Irq> irq;
 				};
 			}
 		}

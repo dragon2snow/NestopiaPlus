@@ -50,13 +50,11 @@ namespace Nes
 					void SubSave(State::Saver&) const;
 					void SubLoad(State::Loader&,dword);
 
-					void SwapChrLo() const;
-					void SwapChrHi() const;
+					inline void SwapChr(uint) const;
 
 					void NST_FASTCALL UpdateChr(uint,uint) const;
 
-					NES_DECL_ACCESSOR( Chr_0000 );
-					NES_DECL_ACCESSOR( Chr_1000 );
+					NES_DECL_ACCESSOR( Chr );
 
 					uint selector[2];
 				};

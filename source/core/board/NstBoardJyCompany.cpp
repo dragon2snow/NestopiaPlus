@@ -22,7 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstClock.hpp"
+#include "../NstTimer.hpp"
 #include "../NstDipSwitches.hpp"
 #include "NstBoard.hpp"
 #include "NstBoardJyCompany.hpp"
@@ -175,10 +175,7 @@ namespace Nes
 					ppu.SetHBlankHook( Hook(this,&Standard::Hook_HBlank) );
 
 					if (cartSwitches.IsPpuLatched())
-					{
-						chr.SetAccessor( 0, this, &Standard::Access_Chr_0000 );
-						chr.SetAccessor( 1, this, &Standard::Access_Chr_1000 );
-					}
+						chr.SetAccessor( this, &Standard::Access_Chr );
 
 					UpdatePrg();
 					UpdateExChr();
@@ -493,33 +490,21 @@ namespace Nes
 					}
 				}
 
-				NES_ACCESSOR(Standard,Chr_0000)
+				NES_ACCESSOR(Standard,Chr)
 				{
 					const uint data = chr.Peek( address );
-					address &= 0xFF8;
 
-					if (address == 0xFD8 || address == 0xFE8)
+					switch (address & 0xFF8)
 					{
-						banks.chrLatch[0] = address >> 4 & 0x2;
+						case 0xFD8:
+						case 0xFE8:
 
-						if ((regs.ctrl[0] & Regs::CTRL0_CHR_MODE) == Regs::CTRL0_CHR_SWAP_4K)
-							UpdateChrLatch();
-					}
+							banks.chrLatch[address >> 12] = address >> 4 & ((address >> 10 & 0x4) | 0x2);
 
-					return data;
-				}
+							if ((regs.ctrl[0] & Regs::CTRL0_CHR_MODE) == Regs::CTRL0_CHR_SWAP_4K)
+								UpdateChrLatch();
 
-				NES_ACCESSOR(Standard,Chr_1000)
-				{
-					const uint data = chr.Peek( address );
-					address &= 0xFF8;
-
-					if (address == 0xFD8 || address == 0xFE8)
-					{
-						banks.chrLatch[1] = address >> 4 & (0x2U|0x4U);
-
-						if ((regs.ctrl[0] & Regs::CTRL0_CHR_MODE) == Regs::CTRL0_CHR_SWAP_4K)
-							UpdateChrLatch();
+							break;
 					}
 
 					return data;
