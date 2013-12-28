@@ -32,8 +32,8 @@
 #pragma warning( disable : 4127 )
 #endif
 
-#define SNES_NTSC_NO_BLITTERS
-#include "../snes_ntsc/snes_ntsc.inl"
+#define NES_NTSC_NO_BLITTERS
+#include "../nes_ntsc/nes_ntsc.inl"
 
 #ifdef _MSC_VER
 #pragma warning( pop )

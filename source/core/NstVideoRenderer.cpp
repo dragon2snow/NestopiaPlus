@@ -687,6 +687,7 @@ namespace Nes
 						const FilterNtscState ntscState
 						(
 							renderState,
+							GetPalette(),
 							state.sharpness,
 							state.resolution,
 							state.bleed,
@@ -720,7 +721,11 @@ namespace Nes
 					state.width = renderState.width;
 					state.height = renderState.height;
 					state.mask = renderState.bits.mask;
-					state.update = State::UPDATE_FILTER | (state.update & ~u8(State::UPDATE_NTSC));
+
+					if (state.filter == RenderState::FILTER_NTSC)
+						state.update = 0;
+					else
+						state.update |= State::UPDATE_FILTER;
 
 					return RESULT_OK;
 				}
@@ -858,32 +863,26 @@ namespace Nes
 
 			void Renderer::UpdateFilter(Input& input)
 			{
-				if (state.update & State::UPDATE_NTSC)
+				NST_VERIFY( state.update );
+
+				if (state.filter == RenderState::FILTER_NTSC)
 				{
-					if (state.filter == RenderState::FILTER_NTSC)
-					{
-						RenderState renderState;
-						GetState( renderState );
+					RenderState renderState;
+					GetState( renderState );
 
-						delete filter;
-						filter = NULL;
+					delete filter;
+					filter = NULL;
 
-						SetState( renderState );
-					}
-					else
-					{
-						state.update &= ~u8(State::UPDATE_NTSC);
-					}
+					SetState( renderState );
 				}
-
-				if (state.update & State::UPDATE_FILTER)
+				else if (state.update & State::UPDATE_FILTER)
 				{
-					state.update &= ~u8(State::UPDATE_FILTER);
-
 					const PaletteEntries& entries = GetPalette();
 					filter->Transform( entries, input.palette );
 					Api::Video::Palette::updateCallback( entries );
 				}
+
+				state.update = 0;
 			}
 
 			#ifdef NST_PRAGMA_OPTIMIZE

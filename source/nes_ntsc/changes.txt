@@ -1,6 +1,35 @@
 nes_ntsc Change Log
 -------------------
 
+nes_ntsc 0.2.1
+--------------
+- Greatly clarified and improved demo to read any uncompressed BMP image and
+write filtered image when done
+
+- Improved gamma to be properly applied to each RGB channel, and changed
+default to compensate for difference between PC monitor and TV gamma
+
+- Added ability to use a custom RGB palette in place of the NES color circuitry
+
+- Improved contrast to be properly applied to each RGB channel rather than just
+luma
+
+- Removed hue_warping for now, due to its obscurity
+
+- Improved floating point calculations in library to be more stable and not
+need double precision, which was causing problems with the sharpness control on
+Windows when the DirectX libraries changed the FPU to single precision mode
+
+- Eliminated slight artifacts still visible when using the RGB preset with
+field merging off
+
+- Added extern "C" to header, allowing use in C++ without having to rename the
+source file
+
+- Made internal changes to factor out code common from all my NTSC filter
+libraries, greatly simplifying things for me
+
+
 nes_ntsc 0.2.0
 --------------
 - Significantly improved NTSC signal processing to give clearer image and
@@ -17,8 +46,8 @@ input/output widths
 - Improved default blitter to support emphasis and allow specification of RGB
 output bit depth
 
-- Improved demo with more controls and interpolation and darkenening of
-scanlines rather than duplicating them
+- Improved demo with more controls and interpolation and darkening of scanlines
+rather than duplicating them
 
 - Improved documentation
 

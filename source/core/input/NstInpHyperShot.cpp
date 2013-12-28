@@ -69,7 +69,6 @@ namespace Nes
 
 				if (prev > strobe && input)
 				{
-					input->hyperShot.timeStamp = GetTimeStamp();
 					Controllers::HyperShot::callback( input->hyperShot );
 					state = input->hyperShot.buttons & 0x1E;
 					input = NULL;

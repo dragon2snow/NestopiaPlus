@@ -394,7 +394,7 @@ namespace Nestopia
 
 			dialog.RadioButton( IDC_PREFERENCES_STYLE_NES ).Check( Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES );
 			dialog.RadioButton( IDC_PREFERENCES_STYLE_FAMICOM ).Check( Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_FAMICOM );
-			
+
 			UpdateIconStyle();
 			UpdateColors();
 

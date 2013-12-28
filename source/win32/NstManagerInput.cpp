@@ -265,7 +265,7 @@ namespace Nestopia
 		}
 
 		Input::CmdKeys::CmdKey::CmdKey(const Key& key,uint c)
-		: Key(key), cmd(c) {}
+		: Key(key), cmd(c), prev(false) {}
 
 		Input::CmdKeys::CmdKeys(Window::Custom& w,DirectX::DirectInput& d)
 		: acquired(false), clock(CLOCK_DEFAULT), window(w), directInput(d)
@@ -535,16 +535,16 @@ namespace Nestopia
 		#pragma optimize("t", on)
 		#endif
 
-		ibool Input::CmdKeys::ForcePoll() const
+		ibool Input::CmdKeys::ForcePoll()
 		{
 			NST_ASSERT( keys.Size() );
 
-			Keys::ConstIterator it = keys.Begin();
+			Keys::Iterator it = keys.Begin();
 			Keys::ConstIterator const end = keys.End();
 
 			do
 			{
-				if (it->GetState())
+				if (it->GetToggle( it->prev ))
 				{
 					window.PostCommand( it->cmd );
 					return true;
@@ -555,9 +555,10 @@ namespace Nestopia
 			return false;
 		}
 
-		inline ibool Input::CmdKeys::Poll() const
+		inline void Input::CmdKeys::Poll()
 		{
-			return CanPoll() ? ForcePoll() : false;
+			if (CanPoll())
+				ForcePoll();
 		}
 
 		uint Input::CmdKeys::OnTimer()

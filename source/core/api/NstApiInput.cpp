@@ -86,7 +86,6 @@ namespace Nes
 			Controllers::PollCaller1< Controllers::KaraokeStudio     > Controllers::KaraokeStudio::callback;
 
 			Controllers::PowerPad::PowerPad() throw()
-			: timeStamp(0)
 			{
 				std::fill( sideA, sideA + NUM_SIDE_A_BUTTONS, false );
 				std::fill( sideB, sideB + NUM_SIDE_B_BUTTONS, false );

@@ -875,7 +875,7 @@ namespace Nestopia
 			Nes::Video(emulator).EnableFieldMerging
 			(
 				dialog->EnableFieldMerging() ||
-				(dialog->UseAutoFieldMerging() && !direct2d.IdealFrameRate())
+				(dialog->UseAutoFieldMerging() && !direct2d.SmoothFrameRate())
 			);
 		}
 

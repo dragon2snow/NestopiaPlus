@@ -22,65 +22,21 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef NST_INPUT_DEVICE_H
-#define NST_INPUT_DEVICE_H
+#ifndef NST_SYSTEM_INFO_H
+#define NST_SYSTEM_INFO_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
 #pragma once
-#endif
 
-#include "../NstState.hpp"
-#include "../api/NstApiInput.hpp"
+#include "NstMain.hpp"
 
-namespace Nes
+namespace Nestopia
 {
-	namespace Core
+	namespace System
 	{
-		class Cpu;
-
-		namespace Input
+		namespace Info
 		{
-			class Device
-			{
-			protected:
-
-				typedef Api::Input::Type Type;
-
-				const Type type;
-				Controllers* input;
-				const Cpu& cpu;
-
-			public:
-
-				Device(const Cpu& c,Type t=Api::Input::UNCONNECTED)
-				: type(t), input(NULL), cpu(c) {}
-
-				virtual ~Device() {}
-
-				virtual void Initialize(dword) {}
-				virtual void Reset() {}
-				virtual void LoadState(State::Loader&,dword) {}
-				virtual void SaveState(State::Saver&,uchar) const {}
-
-				virtual void BeginFrame(Controllers* i)
-				{
-					input = i;
-				}
-
-				virtual void Poke(uint)
-				{
-				}
-
-				virtual uint Peek(uint)
-				{
-					return 0;
-				}
-
-				Type GetType() const
-				{
-					return type;
-				}
-			};
+			uint GetCpuCount();
+			uint GetCpuSpeed();
 		}
 	}
 }

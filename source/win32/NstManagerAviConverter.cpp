@@ -244,8 +244,6 @@ namespace Nestopia
 					dwSuggestedBufferSize = bitmapInfo.biSizeImage;
 					rcFrame.right         = bitmapInfo.biWidth;
 					rcFrame.bottom        = bitmapInfo.biHeight;
-
-					_tcscpy( szName, _T("Video") );
 				}
 			};
 
@@ -272,8 +270,6 @@ namespace Nestopia
 					dwRate          = waveFormat.nAvgBytesPerSec;
 					dwQuality       = (DWORD) -1;
 					dwSampleSize    = waveFormat.nBlockAlign;
-
-					_tcscpy( szName, _T("Sound") );
 				}
 			};
 

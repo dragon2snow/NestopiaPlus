@@ -36,16 +36,16 @@ namespace Nestopia
 {
 	namespace Managers
 	{
-		FrameClock::FrameClock(Window::Menu& m,Emulator& e,const Configuration& cfg)
+		FrameClock::FrameClock(Window::Menu& m,Emulator& e,const Configuration& cfg,bool modernGPU)
 		:
 		emulator ( e ),
 		menu     ( m ),
-		dialog   ( new Window::FrameClock(cfg) )
+		dialog   ( new Window::FrameClock(cfg,modernGPU) )
 		{
 			Io::Log() << "Timer: performance counter ";
 
 			if (System::Timer::HasPerformanceCounter())
-				Io::Log() << "present (" << uint(timer.GetFrequency()) << " hz)\r\n";
+				Io::Log() << "present (" << uint(System::Timer::GetPerformanceCounterFrequency()) << " hz)\r\n";
 			else
 				Io::Log() << "not present\r\n";
 
@@ -75,7 +75,7 @@ namespace Nestopia
 		{
 			UpdateRewinderState();
 
-			settings.autoFrameSkip = dialog->UseAutoFrameSkip();
+			settings.autoFrameSkip = bool(dialog->UseAutoFrameSkip());
 			settings.maxFrameSkips = dialog->GetMaxFrameSkips();
 
 			emulator.ResetSpeed
@@ -97,10 +97,7 @@ namespace Nestopia
 		void FrameClock::ResetTimer()
 		{
 			timer.Reset( dialog->UsePerformanceCounter() ? System::Timer::PERFORMANCE : System::Timer::MULTIMEDIA );
-			time.counter = 0;
-			time.base = 0;
-			time.session = 0;
-			time.safeFrame = timer.GetFrequency() / settings.refreshRate - (timer.GetFrequency() * SAFE_WAIT_TIME / 1000U);
+			counter = 0;
 		}
 
 		void FrameClock::OnEmuEvent(Emulator::Event event)
@@ -119,7 +116,7 @@ namespace Nestopia
 
 					if (dialog->UseDefaultRewindSpeed() || Rewinder(emulator).GetDirection() == Rewinder::FORWARD)
 					{
-						settings.autoFrameSkip = dialog->UseAutoFrameSkip();
+						settings.autoFrameSkip = bool(dialog->UseAutoFrameSkip());
 						emulator.SetSpeed( Emulator::DEFAULT_SPEED );
 					}
 					else
@@ -164,7 +161,7 @@ namespace Nestopia
 
 					if (!emulator.Speeding())
 					{
-						settings.autoFrameSkip = dialog->UseAutoFrameSkip();
+						settings.autoFrameSkip = bool(dialog->UseAutoFrameSkip());
 						emulator.SetSpeed( Emulator::DEFAULT_SPEED );
 					}
 
@@ -184,20 +181,12 @@ namespace Nestopia
 		#pragma optimize("t", on)
 		#endif
 
-		void FrameClock::Synchronize()
-		{
-			const System::Timer::Value current( timer.Elapsed() );
-			const System::Timer::Value elapsed( (current - time.base) + time.session );
-
-			time.session = (elapsed < time.safeFrame) ? timer.Wait( current, current+time.safeFrame-elapsed ) : current;
-		}
-
-		uint FrameClock::Synchronize(const ibool exclusive,uint skips)
+		uint FrameClock::Synchronize(const ibool throttle,uint skips)
 		{
 			System::Timer::Value current( timer.Elapsed() );
 
-			time.counter += timer.GetFrequency();
-			const System::Timer::Value next( time.counter / settings.refreshRate );
+			counter += timer.GetFrequency();
+			const System::Timer::Value next( counter / settings.refreshRate );
 
 			if (current > next)
 			{
@@ -205,28 +194,26 @@ namespace Nestopia
 
 				if (skips & settings.autoFrameSkip)
 				{
-					skips = ((current - time.counter) / timer.GetFrequency()) + 1;
+					skips = (current - counter) / timer.GetFrequency() + 1;
 
 					if (skips > settings.maxFrameSkips)
 						skips = settings.maxFrameSkips;
 
-					time.counter += timer.GetFrequency() * skips;
+					counter += timer.GetFrequency() * skips;
 				}
 				else
 				{
 					skips = 0;
 				}
 
-				time.session = current;
-
-				if (time.counter < current)
-					time.counter = current - (current % timer.GetFrequency()) + (current % timer.GetFrequency() ? timer.GetFrequency() : 0);
+				if (counter < current)
+					counter = current - current % timer.GetFrequency();
 
 				return skips;
 			}
-			else if (exclusive)
+			else if (throttle)
 			{
-				time.session = timer.Wait( current, next );
+				timer.Wait( current, next );
 			}
 
 			return 0;

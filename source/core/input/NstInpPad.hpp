@@ -54,6 +54,7 @@ namespace Nes
 				uint strobe;
 				uint stream;
 				uint state;
+				uint timeStamp;
 
 				static uint mic;
 			};

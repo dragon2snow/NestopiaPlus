@@ -24,6 +24,7 @@
 
 #include "NstInpDevice.hpp"
 #include "NstInpPad.hpp"
+#include "../NstCpu.hpp"
 
 namespace Nes
 {
@@ -57,6 +58,7 @@ namespace Nes
 				strobe = 0;
 				stream = 0xFF;
 				state = 0;
+				timeStamp = 0;
 				mic = 0;
 			}
 
@@ -78,6 +80,8 @@ namespace Nes
 
 					strobe = data[0] & 0x1;
 					stream = data[1] ^ 0xFF;
+
+					timeStamp = 0;
 				}
 			}
 
@@ -89,40 +93,51 @@ namespace Nes
 			{
 				input = i;
 				mic = 0;
+
+				if (timeStamp)
+					--timeStamp;
 			}
 
 			void Pad::Poll()
 			{
-				if (input)
+				const uint nextStamp = cpu.GetMasterClockCycles() / 0x10000UL;
+				NST_VERIFY( input == NULL || timeStamp <= nextStamp );
+
+				if (timeStamp <= nextStamp)
 				{
-					Controllers::Pad& pad = input->pad[type - Api::Input::PAD1];
-					pad.timeStamp = GetTimeStamp();
+					timeStamp = nextStamp;
 
-					if (Controllers::Pad::callback( pad, type - Api::Input::PAD1 ))
+					if (input)
 					{
-						uint buttons = pad.buttons;
+						Controllers::Pad& pad = input->pad[type - Api::Input::PAD1];
+						input = NULL;
 
-						enum
+						if (Controllers::Pad::callback( pad, type - Api::Input::PAD1 ))
 						{
-							UP    = Controllers::Pad::UP,
-							RIGHT = Controllers::Pad::RIGHT,
-							DOWN  = Controllers::Pad::DOWN,
-							LEFT  = Controllers::Pad::LEFT
-						};
+							uint buttons = pad.buttons;
 
-						if (!pad.allowSimulAxes)
-						{
-							if ((buttons & (UP|DOWN)) == (UP|DOWN))
-								buttons &= (UP|DOWN) ^ 0xFF;
+							enum
+							{
+								UP    = Controllers::Pad::UP,
+								RIGHT = Controllers::Pad::RIGHT,
+								DOWN  = Controllers::Pad::DOWN,
+								LEFT  = Controllers::Pad::LEFT
+							};
 
-							if ((buttons & (LEFT|RIGHT)) == (LEFT|RIGHT))
-								buttons &= (LEFT|RIGHT) ^ 0xFF;
+							if (!pad.allowSimulAxes)
+							{
+								if ((buttons & (UP|DOWN)) == (UP|DOWN))
+									buttons &= (UP|DOWN) ^ 0xFF;
+
+								if ((buttons & (LEFT|RIGHT)) == (LEFT|RIGHT))
+									buttons &= (LEFT|RIGHT) ^ 0xFF;
+							}
+
+							state = buttons;
 						}
 
-						state = buttons;
+						mic |= pad.mic;
 					}
-
-					mic |= pad.mic;
 				}
 			}
 

@@ -235,7 +235,7 @@ namespace Nestopia
 			return global.language;
 		}
 
-		const String::Generic<char> Instance::GetVersion()
+		const String::Heap<char>& Instance::GetVersion()
 		{
 			return global.version;
 		}

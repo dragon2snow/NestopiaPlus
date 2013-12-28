@@ -1959,10 +1959,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\input\NstInpDevice.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\source\core\input\NstInpDevice.hpp"
 				>
 			</File>
@@ -2115,6 +2111,14 @@
 			Name="VideoFilters"
 			>
 			<File
+				RelativePath="..\source\nes_ntsc\nes_ntsc.h"
+				>
+			</File>
+			<File
+				RelativePath="..\source\nes_ntsc\nes_ntsc.inl"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\NstVideoFilter2xSaI.cpp"
 				>
 			</File>
@@ -2172,14 +2176,6 @@
 			</File>
 			<File
 				RelativePath="..\source\core\NstVideoFilterScanlines.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\snes_ntsc\snes_ntsc.h"
-				>
-			</File>
-			<File
-				RelativePath="..\source\snes_ntsc\snes_ntsc.inl"
 				>
 			</File>
 		</Filter>

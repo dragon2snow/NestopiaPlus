@@ -158,13 +158,13 @@ namespace Nestopia
 				void Acquire();
 				void Unacquire();
 
-				inline ibool Poll() const;
+				inline void Poll();
 
 			private:
 
 				inline bool CanPoll() const;
 
-				ibool ForcePoll() const;
+				ibool ForcePoll();
 				void  Update();
 				uint  OnTimer();
 				void  OnFocus(Window::Param&);
@@ -182,6 +182,7 @@ namespace Nestopia
 					CmdKey(const Key&,uint);
 
 					uint cmd;
+					ibool prev;
 				};
 
 				typedef Collection::Vector<CmdKey> Keys;

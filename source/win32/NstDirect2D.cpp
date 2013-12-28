@@ -31,7 +31,7 @@
 #include "NstIoLog.hpp"
 #include "NstApplicationException.hpp"
 #include "NstDirect2D.hpp"
-
+#include "NstIoScreen.hpp"
 namespace Nestopia
 {
 	namespace DirectX
@@ -93,7 +93,7 @@ namespace Nestopia
 
 			Adapters adapters;
 
-			for (uint ordinal=0, numAdapters=d3d.GetAdapterCount(); ordinal < numAdapters; ++ordinal)
+			for (uint ordinal=0, numAdapters=d3d.GetAdapterCount(); ordinal < NST_MIN(numAdapters,255); ++ordinal)
 			{
 				D3DADAPTER_IDENTIFIER9 identifier;
 
@@ -163,6 +163,7 @@ namespace Nestopia
 						adapter.intervalThree   = caps.PresentationIntervals & D3DPRESENT_INTERVAL_THREE;
 						adapter.intervalFour    = caps.PresentationIntervals & D3DPRESENT_INTERVAL_FOUR;
 						adapter.filters         = 0;
+						adapter.modern          = (caps.PixelShaderVersion >= D3DPS_VERSION(2,0));
 						adapter.modes           = modes;
 
 						if ((caps.TextureFilterCaps & (D3DPTFILTERCAPS_MINFLINEAR|D3DPTFILTERCAPS_MAGFLINEAR)) == (D3DPTFILTERCAPS_MINFLINEAR|D3DPTFILTERCAPS_MAGFLINEAR))
@@ -490,12 +491,12 @@ namespace Nestopia
 			intervalFour = adapter.intervalFour;
 
 			fonts.Destroy( true );
-			query.Release();
 			com.Release();
 
 			NST_VERIFY( !!Point::Client(presentation.hDeviceWindow) );
 
 			uint buffers = presentation.BackBufferCount = (timing.tripleBuffering ? 2 : 1);
+			presentation.SwapEffect = GetSwapEffect();
 			DWORD flags = D3DCREATE_PUREDEVICE|D3DCREATE_HARDWARE_VERTEXPROCESSING;
 
 			for (;;)
@@ -548,15 +549,13 @@ namespace Nestopia
 				}
 			}
 
-			com->CreateQuery( D3DQUERYTYPE_EVENT, &query );
-
 			Prepare();
 			fonts.Create( *this );
 
 			Io::Log() << "Direct3D: creating "
                       << (adapter.deviceType == Adapter::DEVICE_HAL ? "HAL device #" : "REF device #")
                       << adapter.ordinal
-                      << "\r\nDirect3D: event queries: " << (query != NULL ? "supported\r\n" : "unsupported\r\n");
+                      << "\r\n";
 
 			LogDisplaySwitch();
 		}
@@ -578,6 +577,18 @@ namespace Nestopia
 			displayMode.Height = presentation.BackBufferHeight;
 
 			return false;
+		}
+
+		D3DSWAPEFFECT Direct2D::Device::GetSwapEffect() const
+		{
+			if
+			(
+				presentation.BackBufferCount > 1 ||
+				presentation.Flags == D3DPRESENTFLAG_LOCKABLE_BACKBUFFER
+			)
+				return D3DSWAPEFFECT_DISCARD;
+			else
+				return D3DSWAPEFFECT_COPY;
 		}
 
 		uint Direct2D::Device::GetDesiredPresentationRate(const Mode& mode) const
@@ -633,26 +644,23 @@ namespace Nestopia
 			{
 				return D3DPRESENT_INTERVAL_IMMEDIATE;
 			}
-			else if (presentation.Windowed)
+			else if (!presentation.Windowed)
 			{
-				return D3DPRESENT_INTERVAL_ONE;
+				if (timing.frameRate * 4U == rate && intervalFour)
+				{
+					return D3DPRESENT_INTERVAL_FOUR;
+				}
+				else if (timing.frameRate * 3U == rate && intervalThree)
+				{
+					return D3DPRESENT_INTERVAL_THREE;
+				}
+				else if (timing.frameRate * 2U == rate && intervalTwo)
+				{
+					return D3DPRESENT_INTERVAL_TWO;
+				}
 			}
-			else if (timing.frameRate * 4U == rate && intervalFour)
-			{
-				return D3DPRESENT_INTERVAL_FOUR;
-			}
-			else if (timing.frameRate * 3U == rate && intervalThree)
-			{
-				return D3DPRESENT_INTERVAL_THREE;
-			}
-			else if (timing.frameRate * 2U == rate && intervalTwo)
-			{
-				return D3DPRESENT_INTERVAL_TWO;
-			}
-			else
-			{
-				return D3DPRESENT_INTERVAL_ONE;
-			}
+
+			return timing.frameRate == rate ? D3DPRESENT_INTERVAL_ONE : D3DPRESENT_INTERVAL_IMMEDIATE;
 		}
 
 		uint Direct2D::Device::GetRefreshRate() const
@@ -668,11 +676,6 @@ namespace Nestopia
 			}
 		}
 
-		ibool Direct2D::Device::IdealFrameRate() const
-		{
-			return GetRefreshRate() % timing.frameRate == 0;
-		}
-
 		DWORD Direct2D::Device::GetDesiredPresentationInterval() const
 		{
 			return GetDesiredPresentationInterval( GetRefreshRate() );
@@ -681,11 +684,11 @@ namespace Nestopia
 		HRESULT Direct2D::Device::Reset()
 		{
 			fonts.OnLost();
-			query.Release();
 
 			const uint oldInterval = presentation.PresentationInterval;
 			presentation.PresentationInterval = GetDesiredPresentationInterval();
-			uint buffers = presentation.BackBufferCount = timing.tripleBuffering ? 2 : 1;
+			uint buffers = presentation.BackBufferCount = (timing.tripleBuffering ? 2 : 1);
+			presentation.SwapEffect = GetSwapEffect();
 
 			for (;;)
 			{
@@ -710,11 +713,9 @@ namespace Nestopia
 				}
 			}
 
-			com->CreateQuery( D3DQUERYTYPE_EVENT, &query );
-
 			NST_ASSERT( !presentation.Windowed || !presentation.Flags );
 
-			if ((presentation.Flags & D3DPRESENTFLAG_LOCKABLE_BACKBUFFER) && FAILED(com->SetDialogBoxMode( true )))
+			if (presentation.Flags == D3DPRESENTFLAG_LOCKABLE_BACKBUFFER && FAILED(com->SetDialogBoxMode( true )))
 				throw Application::Exception(_T("IDirect3DDevice9::SetDialogBoxMode() failed!"));
 
 			Prepare();
@@ -958,16 +959,15 @@ namespace Nestopia
 			timing.frameRate = frameRate;
 			timing.vsync = vsync;
 
+			ibool update = false;
+
 			if (timing.tripleBuffering != tripleBuffering)
 			{
 				timing.tripleBuffering = tripleBuffering;
-				return true;
+				update = true;
 			}
-			else if (presentation.Windowed)
-			{
-				return presentation.PresentationInterval != GetDesiredPresentationInterval();
-			}
-			else
+
+			if (!presentation.Windowed)
 			{
 				const Mode mode
 				(
@@ -981,13 +981,11 @@ namespace Nestopia
 				if (presentation.FullScreen_RefreshRateInHz != frameRate)
 				{
 					presentation.FullScreen_RefreshRateInHz = frameRate;
-					return true;
-				}
-				else
-				{
-					return presentation.PresentationInterval != GetDesiredPresentationInterval( frameRate );
+					update = true;
 				}
 			}
+
+			return update || presentation.PresentationInterval != GetDesiredPresentationInterval();
 		}
 
 		Direct2D::VertexBuffer::Vertex::Vertex()

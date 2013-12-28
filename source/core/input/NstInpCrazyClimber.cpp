@@ -81,7 +81,7 @@ namespace Nes
 					if (input)
 					{
 						Controllers::CrazyClimber& crazy = input->crazyClimber;
-						crazy.timeStamp = GetTimeStamp();
+						input = NULL;
 
 						if (Controllers::CrazyClimber::callback( crazy ))
 						{

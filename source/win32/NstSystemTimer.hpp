@@ -45,11 +45,11 @@ namespace Nestopia
 				PERFORMANCE
 			};
 
-			explicit Timer(Type=PERFORMANCE);
+			explicit Timer(Type=MULTIMEDIA);
 
-			ibool Reset(Type=PERFORMANCE);
+			ibool Reset(Type);
 			Value Elapsed() const;
-			Value Wait(Value,Value);
+			void  Wait(Value,Value);
 
 		private:
 
@@ -82,6 +82,11 @@ namespace Nestopia
 			static ibool HasPerformanceCounter()
 			{
 				return settings.pfFrequency != 0;
+			}
+
+			static Value GetPerformanceCounterFrequency()
+			{
+				return settings.pfFrequency;
 			}
 
 			Type GetType() const

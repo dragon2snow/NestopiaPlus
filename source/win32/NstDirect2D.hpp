@@ -109,6 +109,7 @@ namespace Nestopia
 				bool intervalThree;
 				bool intervalFour;
 				uint filters;
+				ibool modern;
 				Modes modes;
 			};
 
@@ -197,7 +198,6 @@ namespace Nestopia
 				ibool CanSwitchFullscreen(const Mode&) const;
 				ibool CanToggleDialogBoxMode(bool) const;
 				ibool ResetFrameRate(uint,bool,bool,const Base&);
-				ibool IdealFrameRate() const;
 				uint  GetMaxMessageLength() const;
 
 				void SwitchFullscreen(const Mode&);
@@ -216,6 +216,7 @@ namespace Nestopia
 				void  Prepare() const;
 				void  LogDisplaySwitch() const;
 				uint  GetRefreshRate() const;
+				D3DSWAPEFFECT GetSwapEffect() const;
 				uint  GetDesiredPresentationRate(const Mode&) const;
 				DWORD GetDesiredPresentationInterval(uint) const;
 				DWORD GetDesiredPresentationInterval() const;
@@ -317,14 +318,13 @@ namespace Nestopia
 					}
 				};
 
-				uint ordinal;
 				ComInterface<IDirect3DDevice9> com;
-				ComInterface<IDirect3DQuery9> query;
 				Timing timing;
 				Fonts fonts;
-				u16 intervalTwo;
-				u16 intervalThree;
-				uint intervalFour;
+				u8 ordinal;
+				u8 intervalTwo;
+				u8 intervalThree;
+				u8 intervalFour;
 				D3DPRESENT_PARAMETERS presentation;
 
 			public:
@@ -332,11 +332,6 @@ namespace Nestopia
 				uint GetOrdinal() const
 				{
 					return ordinal;
-				}
-
-				ibool CanSync() const
-				{
-					return query != NULL;
 				}
 
 				HRESULT ClearScreen() const
@@ -347,19 +342,6 @@ namespace Nestopia
 				HRESULT PresentScreen() const
 				{
 					return com->Present( NULL, NULL, NULL, NULL );
-				}
-
-				HRESULT PresentSyncedScreen() const
-				{
-					NST_ASSERT( query != NULL );
-
-					query->Issue( D3DISSUE_END );
-
-					const HRESULT hResult = com->Present( NULL, NULL, NULL, NULL );
-
-					while (query->GetData( NULL, 0, D3DGETDATA_FLUSH ) == S_FALSE);
-
-					return hResult;
 				}
 
 				const D3DPRESENT_PARAMETERS& GetPresentation() const
@@ -409,6 +391,11 @@ namespace Nestopia
 						presentation.PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE ||
 						speed != timing.frameRate
 					);
+				}
+
+				ibool SmoothFrameRate() const
+				{
+					return presentation.PresentationInterval != D3DPRESENT_INTERVAL_IMMEDIATE;
 				}
 			};
 
@@ -527,14 +514,6 @@ namespace Nestopia
 					return hResult;
 				}
 
-				void PreventAheadRendering() const
-				{
-					D3DLOCKED_RECT locked;
-
-					if (com != NULL && SUCCEEDED(com->LockRect( 0, &locked, NULL, D3DLOCK_NOSYSLOCK )))
-						com->UnlockRect( 0 );
-				}
-
 				void Unlock() const
 				{
 					com->UnlockRect( 0 );
@@ -633,24 +612,11 @@ namespace Nestopia
 					lastResult = device.RenderScreen( state, indexBuffer.NumStrips(), vertexBuffer.NumVertices() );
 			}
 
-			ibool PresentScreen(ibool noSync)
+			ibool PresentScreen()
 			{
 				if (SUCCEEDED(lastResult))
 				{
-					if (noSync)
-					{
-						lastResult = device.PresentScreen();
-					}
-					else if (device.CanSync())
-					{
-						lastResult = device.PresentSyncedScreen();
-					}
-					else
-					{
-						texture.PreventAheadRendering();
-						lastResult = device.PresentScreen();
-					}
-
+					lastResult = device.PresentScreen();
 					return SUCCEEDED(lastResult);
 				}
 				else
@@ -704,14 +670,14 @@ namespace Nestopia
 				return Point( device.GetPresentation().BackBufferWidth, device.GetPresentation().BackBufferHeight );
 			}
 
-			ibool IdealFrameRate() const
+			ibool ModernGPU() const
 			{
-				return device.IdealFrameRate();
+				return base.GetAdapters()[device.GetOrdinal()].modern;
 			}
 
-			ibool DialogBoxMode() const
+			ibool SmoothFrameRate() const
 			{
-				return device.GetPresentation().Flags & D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+				return device.SmoothFrameRate();
 			}
 		};
 	}

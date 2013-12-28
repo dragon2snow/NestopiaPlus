@@ -102,11 +102,10 @@ namespace Nes
 
 					uint buttons;
 					uint mic;
-					uint timeStamp;
 					bool allowSimulAxes;
 
 					Pad()
-					: buttons(0), mic(0), timeStamp(0), allowSimulAxes(false) {}
+					: buttons(0), mic(0), allowSimulAxes(false) {}
 
 					typedef bool (NST_CALLBACK *PollCallback) (void*,Pad&,uint);
 
@@ -152,7 +151,6 @@ namespace Nes
 
 					bool sideA[NUM_SIDE_A_BUTTONS];
 					bool sideB[NUM_SIDE_B_BUTTONS];
-					uint timeStamp;
 
 					typedef bool (NST_CALLBACK *PollCallback) (void*,PowerPad&);
 
@@ -363,10 +361,9 @@ namespace Nes
 					};
 
 					uint buttons;
-					uint timeStamp;
 
 					HyperShot()
-					: buttons(0), timeStamp(0) {}
+					: buttons(0) {}
 
 					typedef bool (NST_CALLBACK *PollCallback) (void*,HyperShot&);
 
@@ -385,10 +382,9 @@ namespace Nes
 
 					uint left;
 					uint right;
-					uint timeStamp;
 
 					CrazyClimber()
-					: left(0), right(0), timeStamp(0) {}
+					: left(0), right(0) {}
 
 					typedef bool (NST_CALLBACK *PollCallback) (void*,CrazyClimber&);
 
@@ -524,10 +520,9 @@ namespace Nes
 					};
 
 					uint units;
-					uint timeStamp;
 
 					PartyTap()
-					: units(0), timeStamp(0) {}
+					: units(0) {}
 
 					typedef bool (NST_CALLBACK *PollCallback) (void*,PartyTap&);
 

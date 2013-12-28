@@ -1235,6 +1235,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\win32\NstSystemInfo.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstSystemInfo.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\win32\NstSystemKeyboard.cpp"
 				>
 			</File>

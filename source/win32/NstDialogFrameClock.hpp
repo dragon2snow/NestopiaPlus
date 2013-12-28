@@ -37,7 +37,7 @@ namespace Nestopia
 		{
 		public:
 
-			explicit FrameClock(const Configuration&);
+			FrameClock(const Configuration&,bool);
 
 			void Save(Configuration&) const;
 
@@ -52,9 +52,11 @@ namespace Nestopia
 				MIN_FRAME_SKIPS = 1,
 				MAX_FRAME_SKIPS = 16,
 				DEFAULT_SPEED = 60,
-				DEFAULT_ALT_SPEED = 180,
+				DEFAULT_ALT_SPEED = 120,
 				DEFAULT_REWIND_SPEED = DEFAULT_SPEED,
-				DEFAULT_FRAME_SKIPS = 8
+				DEFAULT_FRAME_SKIPS = 8,
+				MAX_MHZ_TRIPLE_BUFFERING_ENABLE = 1350,
+				MAX_MHZ_AUTO_FRAME_SKIP_ENABLE = 950
 			};
 
 			struct Settings
@@ -85,6 +87,7 @@ namespace Nestopia
 
 			Settings settings;
 			Dialog dialog;
+			const ibool modernGPU;
 
 		public:
 

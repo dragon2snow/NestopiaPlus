@@ -129,7 +129,7 @@ namespace Nestopia
 			}
 		}
 
-		Timer::Value Timer::Wait(Value current,const Value target)
+		void Timer::Wait(Value current,const Value target)
 		{
 			NST_ASSERT( target >= current );
 
@@ -163,8 +163,6 @@ namespace Nestopia
 				while (uint(current) < uint(target))
 					current = ::timeGetTime() - uint(start);
 			}
-
-			return current;
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE

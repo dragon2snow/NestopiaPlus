@@ -82,7 +82,7 @@ namespace Nes
 					if (input)
 					{
 						Controllers::PowerPad& power = input->powerPad;
-						power.timeStamp = GetTimeStamp();
+						input = NULL;
 
 						if (Controllers::PowerPad::callback( power ))
 						{

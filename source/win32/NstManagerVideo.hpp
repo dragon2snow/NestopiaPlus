@@ -204,10 +204,15 @@ namespace Nestopia
 					RepairScreen();
 			}
 
-			void PresentScreen(ibool noSync=true)
+			void PresentScreen()
 			{
-				if (!direct2d.PresentScreen( noSync ))
+				if (!direct2d.PresentScreen())
 					RepairScreen();
+			}
+
+			ibool ModernGPU() const
+			{
+				return direct2d.ModernGPU();
 			}
 		};
 	}

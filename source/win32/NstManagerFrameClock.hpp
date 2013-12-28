@@ -42,7 +42,7 @@ namespace Nestopia
 		{
 		public:
 
-			FrameClock(Window::Menu&,Emulator&,const Configuration&);
+			FrameClock(Window::Menu&,Emulator&,const Configuration&,bool);
 			~FrameClock();
 
 			typedef System::Timer::Value Value;
@@ -53,7 +53,6 @@ namespace Nestopia
 
 			void OnEmuEvent(Emulator::Event);
 			void OnMenuOptionsTiming(uint);
-			void Synchronize();
 			uint Synchronize(ibool,uint);
 			void UpdateRewinderState(ibool=true) const;
 			void UpdateSettings();
@@ -61,27 +60,18 @@ namespace Nestopia
 
 			enum
 			{
-				MAX_SPEED_NO_FRAMESKIP = 60,
-				SAFE_WAIT_TIME = 1
+				MAX_SPEED_NO_FRAMESKIP = 60
 			};
 
 			struct Settings
 			{
-				uint refreshRate;
-				ibool autoFrameSkip;
-				uint maxFrameSkips;
-			};
-
-			struct Time
-			{
-				System::Timer::Value counter;
-				System::Timer::Value base;
-				System::Timer::Value session;
-				System::Timer::Value safeFrame;
+				u8 autoFrameSkip;
+				u8 maxFrameSkips;
+				u16 refreshRate;
 			};
 
 			System::Timer timer;
-			Time time;
+			System::Timer::Value counter;
 			Settings settings;
 			Emulator& emulator;
 			const Window::Menu& menu;
@@ -89,19 +79,9 @@ namespace Nestopia
 
 		public:
 
-			void GameHalt()
+			uint GameSynchronize(ibool throttle)
 			{
-				time.session = timer.Elapsed() - time.session;
-			}
-
-			void GameResume()
-			{
-				time.base = timer.Elapsed();
-			}
-
-			uint GameSynchronize(ibool exclusive)
-			{
-				return (exclusive | settings.autoFrameSkip) ? Synchronize( exclusive, ~0U ) : (Synchronize(), 0);
+				return (throttle | settings.autoFrameSkip) ? Synchronize( throttle, ~0U ) : 0;
 			}
 
 			void SoundSynchronize()
@@ -122,11 +102,6 @@ namespace Nestopia
 			uint GetRefreshRate() const
 			{
 				return settings.refreshRate;
-			}
-
-			ibool UsesAutoFrameSkip() const
-			{
-				return settings.autoFrameSkip;
 			}
 		};
 	}

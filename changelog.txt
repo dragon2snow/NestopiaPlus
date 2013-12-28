@@ -1,4 +1,32 @@
 ----------------------------------------------------------------
+1.34
+----------------------------------------------------------------
+
+Shell:
+
+ Changes:
+
+  - Better method for CPU/GPU frame synchronization. Disabled when triple 
+    buffering is enabled.
+  - Suitable default settings for auto frame skip, triple buffering and
+    clock source based on system info.
+  - Blargg's nes_ntsc back again with new version 0.2.1.
+  - AVISTREAMINFO::szName no longer used since its presence seem to cause
+    loading failures in some AVI file editors.
+
+ Fixes:
+
+  - Frame timing bug. Could cause severe slowdown on some systems.
+  - Wrong speed at higher refresh rates.
+  - Non-blocking input key commands.
+
+Core:
+
+ Fixes:
+
+  - "Quattro Sports: BMX Simulator" now responds to input again.
+
+----------------------------------------------------------------
 1.33b
 ----------------------------------------------------------------
 

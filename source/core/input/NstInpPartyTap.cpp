@@ -69,9 +69,9 @@ namespace Nes
 				{
 					if (input)
 					{
-						input->partyTap.timeStamp = GetTimeStamp();
 						Controllers::PartyTap::callback( input->partyTap );
 						state = input->partyTap.units;
+						input = NULL;
 					}
 
 					stream = state;

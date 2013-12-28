@@ -57,11 +57,6 @@ namespace Nestopia
 			{
 				return info;
 			}
-
-			operator cstring () const
-			{
-				return Ptr();
-			}
 		};
 	}
 }

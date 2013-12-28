@@ -43,7 +43,7 @@ namespace Nestopia
 
 			const Resource::Version version( Application::Instance::GetLanguage().GetResourcePath().Ptr(), Resource::Version::PRODUCT );
 
-			if (version != Application::Instance::GetVersion() && !Window::User::Confirm( IDS_INCOMPATIBLE_RESOURCE ))
+			if (version != "1.33" && version != Application::Instance::GetVersion() && !Window::User::Confirm( IDS_INCOMPATIBLE_RESOURCE ))
 				throw Application::Exception();
 
 			Io::Log() << "Language: loaded \""

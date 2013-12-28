@@ -89,7 +89,7 @@ namespace Nestopia
 		video       ( window, m, e, paths, cfg ),
 		sound       ( window, m, e, paths, p, cfg ),
 		input       ( window, m, e, cfg, Managers::Input::Screening(this,&Main::OnReturnInputScreen), Managers::Input::Screening(this,&Main::OnReturnOutputScreen) ),
-		frameClock  ( m, e, cfg )
+		frameClock  ( m, e, cfg, video.ModernGPU() )
 		{
 			static const MsgHandler::Entry<Main> messages[] =
 			{
@@ -242,9 +242,7 @@ namespace Nestopia
 								emulator.Execute( NULL, sound.GetOutput(), input.GetOutput() );
 
 							emulator.Execute( video.GetOutput(), sound.GetOutput(), input.GetOutput() );
-							frameClock.GameHalt();
-							video.PresentScreen( frameClock.UsesAutoFrameSkip() );
-							frameClock.GameResume();
+							video.PresentScreen();
 							input.Poll();
 						}
 						else

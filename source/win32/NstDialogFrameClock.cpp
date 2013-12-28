@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstSystemTimer.hpp"
+#include "NstSystemInfo.hpp"
 #include "NstWindowParam.hpp"
 #include "NstApplicationConfiguration.hpp"
 #include "NstDialogFrameClock.hpp"
@@ -54,25 +55,42 @@ namespace Nestopia
 			{ IDOK,                              &FrameClock::OnCmdOk           }
 		};
 
-		FrameClock::FrameClock(const Configuration& cfg)
-		: dialog(IDD_TIMING,this,Handlers::messages,Handlers::commands)
+		FrameClock::FrameClock(const Configuration& cfg,bool mGPU)
+		: dialog(IDD_TIMING,this,Handlers::messages,Handlers::commands), modernGPU(mGPU)
 		{
-			settings.autoFrameSkip         = ( cfg[ "timer auto frame skip"      ] == Configuration::YES );
+			if (System::Info::GetCpuSpeed() && System::Info::GetCpuSpeed() <= MAX_MHZ_AUTO_FRAME_SKIP_ENABLE)
+				settings.autoFrameSkip = (cfg["timer auto frame skip"] != Configuration::NO);
+			else
+				settings.autoFrameSkip = (cfg["timer auto frame skip"] == Configuration::YES);
+
+			if (!modernGPU || System::Info::GetCpuSpeed() <= MAX_MHZ_TRIPLE_BUFFERING_ENABLE)
+				settings.tripleBuffering = (cfg["timer triple buffering"] != Configuration::NO);
+			else
+				settings.tripleBuffering = (cfg["timer triple buffering"] == Configuration::YES);
+
+			if (!System::Timer::HasPerformanceCounter())
+			{
+				settings.pfCounter = false;
+			}
+			else if (System::Info::GetCpuCount() == 1)
+			{
+				settings.pfCounter = (cfg["timer performance counter"] != Configuration::NO);
+			}
+			else
+			{
+				settings.pfCounter = (cfg["timer performance counter"] == Configuration::YES);
+			}
+
 			settings.vsync                 = ( cfg[ "timer vsync"                ] != Configuration::NO  );
-			settings.tripleBuffering       = ( cfg[ "timer triple buffering"     ] == Configuration::YES );
 			settings.rewinder              = ( cfg[ "timer rewinder"             ] == Configuration::YES );
 			settings.useDefaultSpeed       = ( cfg[ "timer default speed"        ] != Configuration::NO  );
 			settings.useDefaultRewindSpeed = ( cfg[ "timer default rewind speed" ] != Configuration::NO  );
 			settings.noRewindSound         = ( cfg[ "timer no rewind sound"      ] == Configuration::YES );
-			settings.pfCounter             = ( cfg[ "timer performance counter"  ] == Configuration::YES );
 
 			settings.speed = cfg[ "timer speed" ];
 			settings.altSpeed = cfg[ "timer alternative speed" ];
 			settings.rewindSpeed = cfg[ "timer rewind speed" ];
 			settings.maxFrameSkips = cfg[ "timer max frame skips" ];
-
-			if (!System::Timer::HasPerformanceCounter())
-				settings.pfCounter = false;
 
 			settings.maxFrameSkips =
 			(
@@ -230,14 +248,14 @@ namespace Nestopia
 				dialog.Slider      ( IDC_TIMING_REWINDER_SPEED         ).Position() = DEFAULT_REWIND_SPEED;
 				dialog.Slider      ( IDC_TIMING_FRAME_SKIPS            ).Position() = DEFAULT_FRAME_SKIPS;
 				dialog.RadioButton ( IDC_TIMING_SYNC_REFRESH           ).Check  ( true  );
-				dialog.RadioButton ( IDC_TIMING_AUTO_FRAME_SKIP        ).Check  ( false );
+				dialog.RadioButton ( IDC_TIMING_AUTO_FRAME_SKIP        ).Check  ( System::Info::GetCpuSpeed() && System::Info::GetCpuSpeed() <= MAX_MHZ_AUTO_FRAME_SKIP_ENABLE );
 				dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).Check  ( true  );
-				dialog.CheckBox    ( IDC_TIMING_TRIPLE_BUFFERING       ).Check  ( false );
+				dialog.CheckBox    ( IDC_TIMING_TRIPLE_BUFFERING       ).Check  ( !modernGPU || System::Info::GetCpuSpeed() <= MAX_MHZ_TRIPLE_BUFFERING_ENABLE );
 				dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).Check  ( true  );
 				dialog.CheckBox    ( IDC_TIMING_REWINDER               ).Check  ( false );
 				dialog.CheckBox    ( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Check  ( true  );
 				dialog.CheckBox    ( IDC_TIMING_REWINDER_NOSOUND       ).Check  ( false );
-				dialog.CheckBox    ( IDC_TIMING_PFC                    ).Check  ( false );
+				dialog.CheckBox    ( IDC_TIMING_PFC                    ).Check  ( System::Timer::HasPerformanceCounter() && System::Info::GetCpuCount() == 1 );
 				dialog.Control     ( IDC_TIMING_PFC                    ).Enable ( System::Timer::HasPerformanceCounter() );
 				dialog.Control     ( IDC_TIMING_FRAME_SKIPS            ).Enable ( false );
 				dialog.Control     ( IDC_TIMING_FRAME_SKIPS_TEXT       ).Enable ( false );
