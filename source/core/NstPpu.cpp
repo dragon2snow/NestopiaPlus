@@ -660,9 +660,56 @@ namespace Nes
 
 		NST_FORCE_INLINE void Ppu::UpdateScrollAddressLine()
 		{
-			if (io.line)
-				io.line.Toggle( scroll.address & 0x3FFF, cpu.GetCycles() );
+			if (!(regs.ctrl[1] & Regs::CTRL1_BG_SP_ENABLED) ||
+				(scanline == SCANLINE_VBLANK)) {
+				//UpdateAddressLine(scroll.address & 0x3fff);
+				if (io.line)
+				{
+					//以下两行代码是修正mickeys safari in letterland 下方状态条
+					int a12_mask = ~((scroll.address & 0x2000) >> 1);
+					io.line.Toggle((scroll.address & a12_mask) & 0x3FFF, cpu.GetCycles());
+
+					//io.line.Toggle(scroll.address & 0x3FFF, cpu.GetCycles());
+				}
+			}
+			//else
+			//{
+			//	if (io.line)
+			//	{
+			//		//以下两行代码是修正mickeys safari in letterland 下方状态条
+			//		int a12_mask = ~((scroll.address & 0x2000) >> 1);
+			//		io.line.Toggle((scroll.address & a12_mask) & 0x3FFF, cpu.GetCycles());
+
+			//		//io.line.Toggle(scroll.address & 0x3FFF, cpu.GetCycles());
+			//	}
+			//}
 		}
+
+//===========================================================================
+		NST_FORCE_INLINE void Ppu::UpdateVramAddress()
+		{
+			if ((scanline != SCANLINE_VBLANK ) && (regs.ctrl[1] & Regs::CTRL1_BG_SP_ENABLED)) { 
+				//if ( regs.ctrl[0] & Regs::CTRL0_INC32 ) { 
+				//	if((scroll.address & 0x7000) == 0x7000) { 
+				//		scroll.address &= 0x0FFF; //scroll.address ^= 0x7000;
+				//		switch(scroll.address & 0x03E0) {
+				//			case 0x03A0: scroll.address ^= 0x0800; break;//scroll.address ^= 0xBA0;break; 
+				//			case 0x03E0: scroll.address &= 0x7C1F; break; ////scroll.address ^= 0x3e0;
+				//			default: scroll.address += 0x20;  
+				//		}                  
+				//	} else { 
+				//		scroll.address += 0x1000; 
+				//	}
+				//} else { 
+				//	scroll.address ++; 
+				//}//老的解决Young Indiana Jones Chronicles, The问题代码
+				scroll.ClockX();
+				scroll.ClockY();
+			} else { 
+				scroll.address = (scroll.address + ((regs.ctrl[0] & Regs::CTRL0_INC32) ? 32 : 1)) & 0x7FFF; 
+			} 
+		}
+//===========================================================================
 
 		NST_FORCE_INLINE void Ppu::OpenName()
 		{
@@ -682,6 +729,10 @@ namespace Nes
 		NST_FORCE_INLINE void Ppu::FetchAttribute()
 		{
 			tiles.attribute = nmt.FetchAttribute( io.address ) >> ((scroll.address & 0x2) | (scroll.address >> 4 & 0x4));
+		}
+		void Ppu::UpdateAttribute(uint attr)
+		{
+			tiles.attribute = attr;
 		}
 
 		NST_FORCE_INLINE void Ppu::OpenPattern(uint address)
@@ -777,7 +828,8 @@ namespace Nes
 					oam.mask = oam.show[pos];
 
 					if ((regs.ctrl[1] & Regs::CTRL1_BG_SP_ENABLED) && !(data & Regs::CTRL1_BG_SP_ENABLED))
-						UpdateScrollAddressLine();
+						//UpdateAddressLine(scroll.address & 0x3fff);//新的
+						UpdateScrollAddressLine(); //原始,解决Burai Fighter (U) [!]后，要测试这里是不是会有问题。
 				}
 
 				io.latch = data;
@@ -921,7 +973,11 @@ namespace Nes
 				{
 					scroll.latch = (scroll.latch & 0x7F00) | data;
 					scroll.address = scroll.latch;
-					UpdateScrollAddressLine();
+					//if (!(regs.ctrl[1] & Regs::CTRL1_BG_SP_ENABLED) ||
+					//    (scanline == SCANLINE_VBLANK)) {
+					//	UpdateAddressLine(scroll.address & 0x3fff);
+					//}
+					UpdateScrollAddressLine();//原始
 				}
 			}
 		}
@@ -931,10 +987,15 @@ namespace Nes
 			Update( cycles.one * 4 );
 
 			NST_VERIFY( IsDead() );
-
 			uint address = scroll.address;
-			scroll.address = (scroll.address + ((regs.ctrl[0] & Regs::CTRL0_INC32) ? 32 : 1)) & 0x7FFF;
-			UpdateScrollAddressLine();
+
+			//scroll.address = (scroll.address + ((regs.ctrl[0] & Regs::CTRL0_INC32) ? 32 : 1)) & 0x7FFF;
+			UpdateVramAddress();
+			//if (!(regs.ctrl[1] & Regs::CTRL1_BG_SP_ENABLED) ||
+			//    (scanline == SCANLINE_VBLANK)) {
+			//	UpdateAddressLine(scroll.address & 0x3fff);
+			//}//新的
+			UpdateScrollAddressLine();//原始
 
 			io.latch = data;
 
@@ -952,6 +1013,8 @@ namespace Nes
 					palette.ram[address ^ 0x10] = data;
 					output.palette[address ^ 0x10] = final;
 				}
+				
+				output.bgColor = palette.ram[0] & uint(Palette::COLOR);
 			}
 			else
 			{
@@ -964,21 +1027,41 @@ namespace Nes
 			}
 		}
 
-		NES_PEEK_A(Ppu,2007)
-		{
-			Update( cycles.one, address );
+		//NES_PEEK_A(Ppu,2007)
+		//{
+		//	Update( cycles.one, address );
 
-			NST_VERIFY( IsDead() );
+		//	NST_VERIFY( IsDead() );
 
-			address = scroll.address & 0x3FFF;
-			scroll.address = (scroll.address + ((regs.ctrl[0] & Regs::CTRL0_INC32) ? 32 : 1)) & 0x7FFF;
-			UpdateScrollAddressLine();
+		//	address = scroll.address & 0x3FFF;
+		//	scroll.address = (scroll.address + ((regs.ctrl[0] & Regs::CTRL0_INC32) ? 32 : 1)) & 0x7FFF;
+		//	UpdateScrollAddressLine();
 
-			io.latch = (address & 0x3F00) != 0x3F00 ? io.buffer : palette.ram[address & 0x1F] & Coloring();
-			io.buffer = (address >= 0x2000 ? nmt.FetchName( address ) : chr.FetchPattern( address ));
+		//	io.latch = (address & 0x3F00) != 0x3F00 ? io.buffer : palette.ram[address & 0x1F] & Coloring();
+		//	io.buffer = (address >= 0x2000 ? nmt.FetchName( address ) : chr.FetchPattern( address ));
 
-			return io.latch;
-		}
+		//	return io.latch;
+		//}
+		NES_PEEK_A(Ppu,2007) 
+		{ 
+			Update( cycles.one, address ); 
+
+			NST_VERIFY( IsDead() ); 
+
+			address = scroll.address & 0x3FFF; 
+			//scroll.address = (scroll.address + ((regs.ctrl[0] & Regs::CTRL0_INC32) ? 32 : 1)) & 0x7FFF; 
+			UpdateVramAddress();
+			//if (!(regs.ctrl[1] & Regs::CTRL1_BG_SP_ENABLED) ||
+			//    (scanline == SCANLINE_VBLANK)) {
+			//	UpdateAddressLine(scroll.address & 0x3fff);
+			//} //新的
+			UpdateScrollAddressLine(); //原始
+
+			io.latch = (address & 0x3F00) != 0x3F00 ? io.buffer : palette.ram[address & 0x1F] & Coloring(); 
+			io.buffer = (address >= 0x2000 ? nmt.FetchName( address ) : chr.FetchPattern( address )); 
+
+			return io.latch; 
+		} 
 
 		NES_POKE_D(Ppu,2xxx)
 		{
@@ -2072,11 +2155,18 @@ namespace Nes
 						}
 						else
 						{
-							cycles.hClock = HCLOCK_VBLANK_0;
+							cycles.hClock = HCLOCK_POSTRENDER;
 
-							if (cycles.count <= HCLOCK_VBLANK_0)
+							if (cycles.count <= HCLOCK_POSTRENDER)
 								break;
 						}
+
+					case HCLOCK_POSTRENDER:
+						UpdateAddressLine(scroll.address & 0x3fff);
+						cycles.hClock = HCLOCK_VBLANK_0;
+
+						if (cycles.count <= HCLOCK_VBLANK_0)
+							break;
 
 					case HCLOCK_VBLANK_0:
 					VBlank0:

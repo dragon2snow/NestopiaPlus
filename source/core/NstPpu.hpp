@@ -113,7 +113,7 @@ namespace Nes
 			public:
 
 				void ResetAccessors();
-
+			
 				template<typename T,typename U,typename V,typename W,typename X>
 				void SetAccessors(T t,U u,V v,W w,X x)
 				{
@@ -139,6 +139,7 @@ namespace Nes
 
 			enum
 			{
+				HCLOCK_POSTRENDER = 340,
 				HCLOCK_DUMMY    = 341,
 				HCLOCK_VBLANK_0 = 681,
 				HCLOCK_VBLANK_1 = 682,
@@ -176,11 +177,15 @@ namespace Nes
 
 			NST_FORCE_INLINE void UpdateAddressLine(uint);
 			NST_FORCE_INLINE void UpdateScrollAddressLine();
+//===================================================================
+			NST_FORCE_INLINE void UpdateVramAddress();
+//===================================================================
 
 			NST_FORCE_INLINE void OpenName();
 			NST_FORCE_INLINE void FetchName();
 			NST_FORCE_INLINE void OpenAttribute();
 			NST_FORCE_INLINE void FetchAttribute();
+			
 			NST_FORCE_INLINE void OpenPattern(uint);
 			NST_FORCE_INLINE uint FetchSpPattern() const;
 			NST_FORCE_INLINE void FetchBgPattern0();
@@ -310,6 +315,7 @@ namespace Nes
 				Video::Screen::Pixel* pixels;
 				uint burstPhase;
 				word palette[Palette::SIZE];
+				uint bgColor;
 			};
 
 			struct Oam
@@ -412,7 +418,9 @@ namespace Nes
 			Chr chr;
 			Nmt nmt;
 			int scanline;
+		public:
 			Output output;
+		private:
 			PpuModel model;
 			Hook hActiveHook;
 			Hook hBlankHook;
@@ -427,6 +435,7 @@ namespace Nes
 			static const byte yuvMaps[4][0x40];
 
 		public:
+			void UpdateAttribute(uint);
 
 			void Update()
 			{
@@ -446,6 +455,21 @@ namespace Nes
 			int GetScanline() const
 			{
 				return scanline;
+			}
+
+			Scroll GetScroll()
+			{
+				return scroll;
+			}
+            
+			Tiles GetTiles()
+			{
+				return tiles;
+			}
+
+			Io GetIo()
+			{
+				return io;
 			}
 
 			uint GetCtrl(uint i) const
