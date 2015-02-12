@@ -703,8 +703,19 @@ namespace Nes
 				//} else { 
 				//	scroll.address ++; 
 				//}//老的解决Young Indiana Jones Chronicles, The问题代码
-				scroll.ClockX();
-				scroll.ClockY();
+
+				//scroll.ClockX(); //解决Young Indiana Jones Chronicles, The，Burai Fighter (U) [!]的问题。
+				//scroll.ClockY(); //这个会影响Baseball Stars II (U) [!]
+
+				if ((scroll.address & 0x001F) != 0x001F)
+					scroll.address++;
+				else
+					scroll.address ^= (0x001F | 0x0400);
+				if ((scroll.address & 0x7000) != (7U << 12))
+				{
+					scroll.address += (1U << 12);
+				}
+
 			} else { 
 				scroll.address = (scroll.address + ((regs.ctrl[0] & Regs::CTRL0_INC32) ? 32 : 1)) & 0x7FFF; 
 			} 
