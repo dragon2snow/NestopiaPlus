@@ -1,10 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES/Famicom emulator written in C++
+// Nestopia/Nestopia Plus! - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2008 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij,Copyright (C) 2008-2016 dragon2snow
 //
-// This file is part of Nestopia.
+// This file is part of Nestopia/Nestopia Plus!.
 //
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -780,6 +780,9 @@ namespace Nes
 				count = latch;
 			else
 				ctrl &= ~uint(CTRL_ENABLED);
+			//以下来着FHorse 修正Kaettekita Mario Bros. (1988)(Nintendo)(J)
+			//如有问题请注销以下代码。可能受影响的游戏billboard 等。
+			//latch = 0;
 		}
 
 		NST_SINGLE_CALL bool Fds::Unit::Timer::Clock()
@@ -1371,7 +1374,11 @@ namespace Nes
 			unit.status &= Unit::STATUS_TRANSFERED;
 
 			if (!unit.status)
+			{
+				unit.timer.latch = 0;
 				ClearIRQ();
+			}
+				
 		}
 
 		NES_POKE_D(Fds::Adapter,4024)
