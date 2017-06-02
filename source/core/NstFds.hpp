@@ -1,10 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES/Famicom emulator written in C++
+// Nestopia/Nestopia Plus! - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2008 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij,Copyright (C) 2008-2016 dragon2snow
 //
-// This file is part of Nestopia.
+// This file is part of Nestopia/Nestopia Plus!.
 //
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -34,6 +34,8 @@
 #ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
+
+#define NUM_MANUFACTURERS (sizeof(manufacturers)/sizeof(manufacturers[0]))
 
 namespace Nes
 {
@@ -274,6 +276,55 @@ namespace Nes
 					MOUNTING = 180
 				};
 
+				struct fds_manufacturer_code {
+					uint8_t code;
+					const char *name;
+					const char *jpname;
+				};
+
+				fds_manufacturer_code manufacturers[41] = {
+					{ 0x00, "<unlicensed>", "<非公認>" },
+					{ 0x01, "Nintendo", "任天堂" },
+					{ 0x08, "Capcom", "カプコン" },
+					{ 0x0A, "Jaleco", "ジャレコ" },
+					{ 0x18, "Hudson Soft", "ハドソン" },
+					{ 0x49, "Irem", "アイレム" },
+					{ 0x4A, "Gakken", "学習研究社" },
+					{ 0x8B, "BulletProof Software (BPS)", "BPS" },
+					{ 0x99, "Pack-In-Video", "パックインビデオ" },
+					{ 0x9B, "Tecmo", "テクモ" },
+					{ 0x9C, "Imagineer", "イマジニア" },
+					{ 0xA2, "Scorpion Soft", "スコーピオンソフト" },
+					{ 0xA4, "Konami", "コナミ" },
+					{ 0xA6, "Kawada Co., Ltd.", "河田" },
+					{ 0xA7, "Takara", "タカラ" },
+					{ 0xA8, "Royal Industries", "ロイヤル工業" },
+					{ 0xAC, "Toei Animation", "東映動画" },
+					{ 0xAF, "Namco", "ナムコ" },
+					{ 0xB1, "ASCII Corporation", "アスキー" },
+					{ 0xB2, "Bandai", "バンダイ" },
+					{ 0xB3, "Soft Pro Inc.", "ソフトプロ" },
+					{ 0xB6, "HAL Laboratory", "HAL研究所" },
+					{ 0xBB, "Sunsoft", "サンソフト" },
+					{ 0xBC, "Toshiba EMI", "東芝EMI" },
+					{ 0xC0, "Taito", "タイトー" },
+					{ 0xC1, "Sunsoft / Ask Co., Ltd.", "サンソフト アスク講談社" },
+					{ 0xC2, "Kemco", "ケムコ" },
+					{ 0xC3, "Square", "スクウェア" },
+					{ 0xC4, "Tokuma Shoten", "徳間書店" },
+					{ 0xC5, "Data East", "データイースト" },
+					{ 0xC6, "Tonkin House/Tokyo Shoseki", "トンキンハウス" },
+					{ 0xC7, "East Cube", "イーストキューブ" },
+					{ 0xCA, "Konami / Ultra / Palcom", "コナミ" },
+					{ 0XCB, "NTVIC / VAP", "バップ" },
+					{ 0xCC, "Use Co., Ltd.", "ユース" },
+					{ 0xCE, "Pony Canyon / FCI", "ポニーキャニオン" },
+					{ 0xD1, "Sofel", "ソフエル" },
+					{ 0xD2, "Bothtec, Inc.", "ボーステック" },
+					{ 0xDB, "Hiro Co., Ltd.", "ヒロ" },
+					{ 0xE7, "Athena", "アテナ" },
+					{ 0xEB, "Atlus", "アトラス " }
+				};
 				class Sides
 				{
 				public:
@@ -466,6 +517,7 @@ namespace Nes
 				mutable word led;
 			};
 
+
 			Disks disks;
 			Adapter adapter;
 			Io io;
@@ -474,7 +526,7 @@ namespace Nes
 			Ram ram;
 			Sound sound;
 			mutable Checksum checksum;
-
+			const FavoredSystem favoredSystem;
 			class Bios;
 			static Bios bios;
 

@@ -103,8 +103,23 @@ namespace Nes
 								break;
 
 							default:
-
-								Log::Flush( "Fds: warning, unknown BIOS ROM!" NST_LINEBREAK );
+								if ((rom[0x239] == 0x42) && (rom[0x406] == 0x42) &&
+									(rom[0x73e] == 0x4c) && (rom[0x73f] == 0x43) &&
+									(rom[0x740] == 0xe7) && (rom[0x7a4] == 0x42) &&
+									(rom[0xef4] == 0x42)) 
+								{
+									Log::Flush("Fds: warning, VC FDS bios detected;" NST_LINEBREAK);
+									rom[0x239] = 0x85;
+									rom[0x406] = 0x85;
+									rom[0x73e] = 0xa2;
+									rom[0x73f] = 0xb2;
+									rom[0x740] = 0xca;
+									rom[0x7a4] = 0x4c;
+									rom[0xef4] = 0xa5;
+									Log::Flush("Fds: BIOS ROM ok" NST_LINEBREAK);
+								}
+								else
+									Log::Flush("Fds: warning, unknown BIOS ROM!" NST_LINEBREAK);
 								break;
 						}
 					}
@@ -167,7 +182,8 @@ namespace Nes
 		adapter (context.cpu,disks.sides),
 		cpu     (context.cpu),
 		ppu     (context.ppu),
-		sound   (context.apu)
+		sound   (context.apu),
+		favoredSystem(context.favoredSystem)
 		{
 			if (!bios.Available())
 				throw RESULT_ERR_MISSING_BIOS;
@@ -262,13 +278,49 @@ namespace Nes
 		{
 			if (region == REGION_NTSC)
 			{
-				if (cpu)
-					*cpu = CPU_RP2A03;
+				if (favoredSystem == FAVORED_DENDY)// Todo ?? 2017011
+				{
+					if (cpu)
+						*cpu = CPU_DENDY;
 
-				if (ppu)
-					*ppu = PPU_RP2C02;
+					if (ppu)
+						*ppu = PPU_DENDY;
+
+					return SYSTEM_DENDY;
+				}
+				else
+				{
+					if (cpu)
+						*cpu = CPU_RP2A03;
+
+					if (ppu)
+						*ppu = PPU_RP2C02;
+				}
 
 				return SYSTEM_FAMICOM;
+			}
+			else if (region == REGION_PAL)
+			{
+				if (favoredSystem == FAVORED_DENDY)
+				{
+					if (cpu)
+						*cpu = CPU_DENDY;
+
+					if (ppu)
+						*ppu = PPU_DENDY;
+					
+					return SYSTEM_DENDY;
+				}
+				else
+				{
+					if (cpu)
+						*cpu = CPU_RP2A07;
+					
+					if (ppu)
+						*ppu = PPU_RP2C07;
+					
+					return SYSTEM_NES_PAL;
+				}
 			}
 			else
 			{
@@ -751,8 +803,19 @@ namespace Nes
                                                                                      "unknown" NST_LINEBREAK
 								);
 						}
+					
+					}
+
+				}
+
+				int manufacturer = -1;
+				for (int j = 0; j < NUM_MANUFACTURERS; j++) {
+					if (manufacturers[j].code == sides[0][15]) {
+						manufacturer = j;
+						break;
 					}
 				}
+				log << "Fds: Manufacturer:" << ((manufacturer >= 0) ? manufacturers[manufacturer].name : "<unknown>") << NST_LINEBREAK;
 			}
 		}
 
@@ -1373,9 +1436,18 @@ namespace Nes
 			unit.timer.count = unit.timer.latch;
 			unit.status &= Unit::STATUS_TRANSFERED;
 
-			if (!unit.status)
+			bool enabled = (data & 0x02) == 0x02;
+			bool reload = (data & 0x01) == 0x01;
+
+			if (enabled && !reload)
 			{
 				unit.timer.latch = 0;
+				//ClearIRQ();
+			}
+
+			if (!unit.status)
+			{
+				//unit.timer.latch = 0;
 				ClearIRQ();
 			}
 				
