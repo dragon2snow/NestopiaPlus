@@ -1,0 +1,24 @@
+ for (int i = 0; i < this.richTextBox1.Lines.Length; i++)
+            {
+                string line = this.richTextBox1.Lines[i];
+                string[] items = line.Split(' ');
+                if (!String.IsNullOrEmpty(items[0]) && !String.IsNullOrWhiteSpace(items[0]))
+                {
+                    System.Console.Write(items[0] + " ");
+                    System.Console.Write(items[1] + " ");
+                    for (int j = 2; j < items.Length; j++)
+                    {
+                        if (String.IsNullOrEmpty(items[j]) || String.IsNullOrWhiteSpace(items[j]))
+                        {
+                            System.Console.Write(" ");
+                        }
+                        else
+                        {
+                            Int16 fuck = Int16.Parse(items[j]);
+                            fuck += 20;
+                            System.Console.WriteLine(fuck);
+                        }
+                    }
+
+                }               
+            }
